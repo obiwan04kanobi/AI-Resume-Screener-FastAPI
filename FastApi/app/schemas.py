@@ -127,3 +127,7 @@ class TokenValidateResponse(CandidateResponse):
 class GroupedJobResponse(BaseModel):
     status: str
     data: Dict[str, List[JobResponse]]
+
+# In app/schemas.py, add this class
+class JobUpdateDetails(JobBase):
+    pass

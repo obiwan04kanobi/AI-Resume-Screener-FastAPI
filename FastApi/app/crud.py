@@ -1,5 +1,4 @@
-# app/crud.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload # <<--- 1. ADD 'joinedload' TO THIS IMPORT
 from . import models, schemas
 import uuid
 from datetime import datetime, timedelta
@@ -29,6 +28,20 @@ def create_job(db: Session, job: schemas.JobCreate):
     db.refresh(db_job)
     return db_job
 
+def update_job_details(db: Session, job_id: str, job_data: schemas.JobUpdateDetails):
+    db_job = get_job(db, job_id)
+    if not db_job:
+        return None
+    
+    update_data = job_data.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(db_job, key, value)
+    
+    db.commit()
+    db.refresh(db_job)
+    return db_job
+
 def update_job_status(db: Session, job_id: str, status: str):
     db_job = get_job(db, job_id)
     if db_job:
@@ -49,7 +62,8 @@ def get_candidate(db: Session, resume_id: str):
     return db.query(models.Candidate).filter(models.Candidate.resume_id == resume_id).first()
 
 def get_all_candidates(db: Session):
-    return db.query(models.Candidate).options(db.joinedload(models.Candidate.job)).all()
+    # 2. CORRECT THE LINE BELOW (remove 'db.' before 'joinedload')
+    return db.query(models.Candidate).options(joinedload(models.Candidate.job)).all()
 
 def create_candidate(db: Session, data: schemas.ResumeUploadRequest, s3_key: str, resume_url: str):
     resume_id = str(uuid.uuid4())

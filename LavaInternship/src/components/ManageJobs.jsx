@@ -5,9 +5,8 @@ import { useForm } from 'react-hook-form';
 import { X } from 'lucide-react';
 
 // Live API Endpoints
-const GET_JOBS_API = 'https://4vj8gtysxi.execute-api.ap-south-1.amazonaws.com/JobListings';
-const GET_RESUMES_API = 'https://k2kqvumlg6.execute-api.ap-south-1.amazonaws.com/getResume';
-const UPDATE_JOB_API = 'https://jd8992ps66.execute-api.ap-south-1.amazonaws.com/updatejobstatus';
+const GET_JOBS_API = 'http://localhost:8000/jobs/';
+const GET_RESUMES_API = 'http://localhost:8000/candidates/';
 
 // --- Job Edit Modal Component ---
 const JobEditModal = ({ job, onClose, onSave, onDelete }) => {
@@ -195,7 +194,8 @@ const ManageJobs = () => {
         const originalJobs = [...jobs];
         setJobs(jobs.map(job => job.job_id === jobId ? { ...job, status: newStatus } : job));
         try {
-            await axios.post(UPDATE_JOB_API, { job_id: jobId, status: newStatus, action: 'update_status' });
+            // Use PATCH and the correct URL
+            await axios.patch(`http://localhost:8000/jobs/${jobId}/status`, { status: newStatus });
         } catch (err) {
             console.error("Failed to update job status:", err);
             alert("Failed to update job status. Reverting change.");
@@ -214,15 +214,13 @@ const ManageJobs = () => {
         setUpdatingJobId(originalJobId);
 
         try {
-            const response = await axios.post(UPDATE_JOB_API, {
-                ...updatedJobData,
-                action: 'update_job_details'
-            });
-            
-            const finalJobData = response.data.updatedJob;
+            // Use PUT and the correct URL. No 'action' field needed.
+            const response = await axios.put(`http://localhost:8000/jobs/${originalJobId}`, updatedJobData);
 
-            setJobs(prevJobs => 
-                prevJobs.map(j => j.job_id === originalJobId ? { ...j, ...finalJobData } : j)
+            const finalJobData = response.data;
+
+            setJobs(prevJobs =>
+                prevJobs.map(j => j.job_id === originalJobId ? { ...j, ...finalJobData, submissionCount: j.submissionCount } : j)
             );
 
             alert('Job updated successfully!');
@@ -241,7 +239,8 @@ const ManageJobs = () => {
         const originalJobs = [...jobs];
         setJobs(jobs.filter(job => job.job_id !== jobId));
         try {
-            await axios.post(UPDATE_JOB_API, { job_id: jobId, action: 'delete' });
+            // Use DELETE and the correct URL. No 'action' field needed.
+            await axios.delete(`http://localhost:8000/jobs/${jobId}`);
             alert('Job deleted successfully!');
         } catch (err) {
             console.error("Failed to delete job:", err);
@@ -260,7 +259,7 @@ const ManageJobs = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="bg-white p-6 sm:p-8 border-2 border-[#264143] rounded-2xl shadow-lg">
                         <header className="mb-8"><h2 className="text-3xl font-bold text-[#264143]">Manage Job Listings</h2></header>
-                        <div className="mb-6"><input type="text" placeholder="Search by Job ID, Title, or Department..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"/></div>
+                        <div className="mb-6"><input type="text" placeholder="Search by Job ID, Title, or Department..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg" /></div>
                         {loading && <p className="text-center text-lg">Loading...</p>}
                         {error && <p className="text-center text-lg text-red-500">{error}</p>}
                         {!loading && !error && (

@@ -39,3 +39,12 @@ def delete_job_endpoint(job_id: str, db: Session = Depends(get_db)):
     if db_job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return
+
+# In app/routers/jobs.py, add this new endpoint function
+
+@router.put("/{job_id}", response_model=schemas.JobResponse)
+def update_full_job(job_id: str, job_data: schemas.JobUpdateDetails, db: Session = Depends(get_db)):
+    updated_job = crud.update_job_details(db, job_id=job_id, job_data=job_data)
+    if updated_job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return updated_job

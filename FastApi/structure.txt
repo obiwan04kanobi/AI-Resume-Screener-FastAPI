@@ -1,0 +1,20 @@
+ai_resume_portal_backend/
+├── venv/
+├── app/
+│   ├── __init__.py
+│   ├── main.py             # Main FastAPI app instance and startup logic
+│   ├── database.py         # Database session and connection logic
+│   ├── models.py           # SQLAlchemy table models
+│   ├── schemas.py          # Pydantic data validation models
+│   ├── crud.py             # Reusable functions to interact with the database
+│   ├── config.py           # Loads environment variables
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── aws_service.py  # Logic for Textract, Comprehend, S3
+│   │   └── email_service.py# Logic for sending emails
+│   └── routers/
+│       ├── __init__.py
+│       ├── jobs.py         # Endpoints for /jobs
+│       └── candidates.py   # Endpoints for /candidates
+├── .env                    # Your environment variables
+└── requirements.txt        # Project dependencies

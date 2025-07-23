@@ -1,0 +1,71 @@
+CREATE DATABASE resume_portal;
+USE resume_portal;
+
+-- To store job postings
+CREATE TABLE jobs (
+    job_id VARCHAR(255) PRIMARY KEY,
+    jobTitle VARCHAR(255) NOT NULL,
+    department VARCHAR(255),
+    location VARCHAR(255),
+    workType VARCHAR(50),
+    workMode VARCHAR(50),
+    experienceLevel VARCHAR(100),
+    minExperience INT,
+    maxExperience INT,
+    minSalary BIGINT,
+    maxSalary BIGINT,
+    currency VARCHAR(10),
+    jobDescription TEXT,
+    responsibilities JSON,
+    requirements JSON,
+    qualifications JSON,
+    skills JSON,
+    benefits JSON,
+    applicationDeadline DATE,
+    positionsAvailable INT DEFAULT 1,
+    reportingTo VARCHAR(255),
+    contactEmail VARCHAR(255),
+    isUrgent BOOLEAN DEFAULT FALSE,
+    allowRemote BOOLEAN DEFAULT FALSE,
+    travelRequired BOOLEAN DEFAULT FALSE,
+    backgroundCheckRequired BOOLEAN DEFAULT FALSE,
+    postedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'Active'
+);
+
+-- To store candidate information and resume metadata
+CREATE TABLE candidates (
+    resume_id VARCHAR(36) PRIMARY KEY,
+    job_id VARCHAR(255),
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    gender VARCHAR(20),
+    age INT,
+    work_pref VARCHAR(100),
+    address TEXT,
+    experience VARCHAR(100),
+    marks12 VARCHAR(50),
+    pass12 INT,
+    grad_year INT,
+    grad_marks VARCHAR(50),
+    linkedin VARCHAR(255),
+    s3_key VARCHAR(255),
+    resume_url TEXT,
+    status VARCHAR(50) DEFAULT 'Uploaded',
+    submission_timestamp DATETIME,
+    extracted_text LONGTEXT,
+    extracted_entities JSON,
+    extracted_skills JSON,
+    FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE SET NULL
+);
+
+-- To store the secure review tokens
+CREATE TABLE review_tokens (
+    token VARCHAR(512) PRIMARY KEY,
+    resume_id VARCHAR(36) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    expires_at DATETIME NOT NULL,
+    FOREIGN KEY (resume_id) REFERENCES candidates(resume_id) ON DELETE CASCADE
+);

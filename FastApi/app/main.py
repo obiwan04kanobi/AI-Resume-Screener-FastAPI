@@ -17,10 +17,10 @@ app = FastAPI(
 # CORS configuration to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Update with your frontend URL
+    allow_origins=["http://localhost:5173"],  # Update with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["content-type"],
 )
 
 app.include_router(jobs.router)

@@ -121,3 +121,9 @@ class SendReviewRequest(BaseModel):
 class TokenValidateResponse(CandidateResponse):
     # Inherits all fields from CandidateResponse
     pass
+
+# In app/schemas.py
+
+class GroupedJobResponse(BaseModel):
+    status: str
+    data: Dict[str, List[JobResponse]]

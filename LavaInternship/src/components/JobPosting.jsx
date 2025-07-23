@@ -69,7 +69,7 @@ const JobPostingForm = () => {
             };
 
             // 1. Post the job to your primary database
-            await axios.post('https://7otecyotv1.execute-api.ap-south-1.amazonaws.com/PostJob', processedData);
+            await axios.post('http://127.0.0.1:8000/jobs/', processedData);
 
             console.log('Job posted successfully to the database.');
 

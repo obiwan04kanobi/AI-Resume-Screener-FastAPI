@@ -15,11 +15,14 @@ def create_new_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
     # Adapts JobPostingFunction.py
     return crud.create_job(db=db, job=job)
 
-@router.get("/", response_model=Dict[str, List[schemas.JobResponse]])
+# NEW CODE:
+@router.get("/", response_model=schemas.GroupedJobResponse)
 def get_active_jobs(db: Session = Depends(get_db)):
-    # Adapts JobListingFunction.py
     grouped_jobs = crud.get_jobs_grouped_by_department(db)
-    return grouped_jobs
+    return {
+        "status": "success",
+        "data": grouped_jobs
+    }
 
 @router.patch("/{job_id}/status", response_model=schemas.JobResponse)
 def update_job_status_endpoint(job_id: str, status_update: schemas.JobUpdate, db: Session = Depends(get_db)):

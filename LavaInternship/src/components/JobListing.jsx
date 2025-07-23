@@ -30,7 +30,7 @@ const JobListing = () => {
     useEffect(() => {
         const fetchJobs = async () => {
             try {
-                const res = await fetch("https://4vj8gtysxi.execute-api.ap-south-1.amazonaws.com/JobListings");
+                const res = await fetch("http://127.0.0.1:8000/jobs/");
                 const data = await res.json();
 
                 if (data.status === "success" && data.data) {

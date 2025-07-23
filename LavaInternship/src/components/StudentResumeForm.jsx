@@ -15,8 +15,7 @@ const StudentResumeForm = () => {
     }
   }, []);
 
-  const apiEndpoint =
-    "https://70vamjew18.execute-api.ap-south-1.amazonaws.com/upload-url";
+  const apiEndpoint = "http://localhost:8000/candidates/apply";
   const [toastVisible, setToastVisible] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -81,14 +80,14 @@ const StudentResumeForm = () => {
         }
         break;
       case "age":
-         const ageValue = parseInt(value, 10);
-      // Check if value is empty, not a number, or outside the 18-65 range
-      if (!value || isNaN(ageValue) || ageValue < 18 || ageValue > 65) {
-        newErrors[name] = "Please enter a valid age between 18 and 65";
-      } else {
-        delete newErrors[name];
-      }
-      break;
+        const ageValue = parseInt(value, 10);
+        // Check if value is empty, not a number, or outside the 18-65 range
+        if (!value || isNaN(ageValue) || ageValue < 18 || ageValue > 65) {
+          newErrors[name] = "Please enter a valid age between 18 and 65";
+        } else {
+          delete newErrors[name];
+        }
+        break;
     }
 
     setErrors(newErrors);
@@ -105,34 +104,35 @@ const StudentResumeForm = () => {
     validateField("resume", null, file);
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ADD THIS CHECK AT THE TOP
+    if (!jobInfo.jobId) {
+      alert("No job selected! Please go to the job listings and click 'Apply' on a specific job first.");
+      return; // Stop the form submission
+    }
+
     const now = new Date();
-    const submittedAt = now.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      hour12: true,
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    // Correctly formatted date
+    const submittedAt = now.toISOString();
     const file = e.target.resume.files[0];
 
+    // Correctly formatted form data with numbers and nulls
     const formData = {
       name: e.target.name.value.trim(),
       email: e.target.email.value.trim(),
       contact: e.target.contact.value.trim(),
       experience: e.target.experience.value,
-      pass12: e.target.pass12.value,
-      gradYear: e.target.gradYear.value,
-      marks12: e.target.marks12.value,
-      gradMarks: e.target.gradMarks.value,
+      pass12: e.target.pass12.value ? parseInt(e.target.pass12.value, 10) : null,
+      gradYear: e.target.gradYear.value ? parseInt(e.target.gradYear.value, 10) : null,
+      marks12: e.target.marks12.value || null,
+      gradMarks: e.target.gradMarks.value || null,
       gender: e.target.Gender.value,
       workPref: e.target.workPref.value,
-      age: e.target.age.value,
-      linkedIn: e.target.linkedIn.value.trim(),
+      age: parseInt(e.target.age.value, 10),
+      linkedIn: e.target.linkedIn.value.trim() || null,
       address: e.target.address.value.trim(),
       resume: file?.name || "",
       jobId: jobInfo.jobId,
@@ -140,27 +140,35 @@ const StudentResumeForm = () => {
       submittedAt: submittedAt,
     };
 
+    // --- No changes needed to validation logic below ---
     let localErrors = {};
     const collectError = (name, valid) => {
       if (!valid) localErrors[name] = true;
     };
-
     collectError("name", validateField("name", formData.name));
     collectError("email", validateField("email", formData.email));
     collectError("contact", validateField("contact", formData.contact));
     collectError("age", validateField("age", formData.age));
-    collectError(
-      "experience",
-      validateField("experience", formData.experience)
-    );
+    collectError("experience", validateField("experience", formData.experience));
     collectError("Gender", validateField("Gender", formData.gender));
     collectError("workPref", validateField("workPref", formData.workPref));
-    collectError("resume", validateField("resume", null, file));
+    const fileValidation = validateFile(file);
+    if (!fileValidation.valid) {
+      setErrors(prev => ({ ...prev, resume: fileValidation.message }));
+      localErrors.resume = true;
+    } else {
+      setErrors(prev => {
+        const newErr = { ...prev };
+        delete newErr.resume;
+        return newErr;
+      });
+    }
 
     if (Object.keys(localErrors).length > 0) {
       console.warn("⚠️ Validation failed.", localErrors);
       return;
     }
+    // --- End of validation logic ---
 
     try {
       const res = await fetch(apiEndpoint, {
@@ -170,7 +178,15 @@ const StudentResumeForm = () => {
       });
 
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Upload failed");
+
+      // THIS IS THE CORRECTED ERROR HANDLING
+      if (!res.ok) {
+        const error = new Error("Server responded with an error.");
+        // Attach the detailed error message from the server to our error object
+        error.response = { data: result };
+        throw error; // Throw the error so the catch block can read it
+      }
+
       if (!result.upload_url) throw new Error("No upload URL received");
 
       await fetch(result.upload_url, {
@@ -186,8 +202,15 @@ const StudentResumeForm = () => {
       e.target.reset();
       setErrors({});
     } catch (err) {
-      console.error("🚨 Submission error:", err);
-      alert("Error: " + err.message);
+      // This catch block will now receive the detailed error message
+      if (err.response && err.response.data) {
+        console.error("🚨 Validation error:", err.response.data);
+        const errorDetails = JSON.stringify(err.response.data.detail, null, 2);
+        alert(`Submission Error:\n${errorDetails}`);
+      } else {
+        console.error("🚨 Submission error:", err);
+        alert("Error: " + err.message);
+      }
     }
   };
 
@@ -217,9 +240,8 @@ const StudentResumeForm = () => {
                 type="text"
                 name="name"
                 placeholder="Enter your full name"
-                className={`w-full border-2 ${
-                  errors.name ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.name ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 required
                 onBlur={handleBlur}
               />
@@ -237,9 +259,8 @@ const StudentResumeForm = () => {
                 type="email"
                 name="email"
                 placeholder="example@email.com"
-                className={`w-full border-2 ${
-                  errors.email ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.email ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 required
                 onBlur={handleBlur}
               />
@@ -257,9 +278,8 @@ const StudentResumeForm = () => {
                 type="tel"
                 name="contact"
                 placeholder="10-digit mobile number"
-                className={`w-full border-2 ${
-                  errors.contact ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.contact ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 required
                 onBlur={handleBlur}
               />
@@ -275,9 +295,8 @@ const StudentResumeForm = () => {
               </label>
               <select
                 name="Gender"
-                className={`w-full border-2 ${
-                  errors.Gender ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.Gender ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 required
                 onBlur={handleBlur}
                 defaultValue=""
@@ -301,9 +320,8 @@ const StudentResumeForm = () => {
               </label>
               <select
                 name="experience"
-                className={`w-full border-2 ${
-                  errors.experience ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.experience ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 required
                 onBlur={handleBlur}
                 defaultValue=""
@@ -328,9 +346,8 @@ const StudentResumeForm = () => {
               </label>
               <select
                 name="workPref"
-                className={`w-full border-2 ${
-                  errors.workPref ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.workPref ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 required
                 onBlur={handleBlur}
                 defaultValue=""
@@ -358,9 +375,8 @@ const StudentResumeForm = () => {
                 placeholder="e.g., 2020"
                 min="1990"
                 max={new Date().getFullYear()}
-                className={`w-full border-2 ${
-                  errors.pass12 ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.pass12 ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 onBlur={handleBlur}
               />
             </div>
@@ -377,9 +393,8 @@ const StudentResumeForm = () => {
                 max="100"
                 step="0.01"
                 placeholder="e.g., 85.5"
-                className={`w-full border-2 ${
-                  errors.marks12 ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.marks12 ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 onBlur={handleBlur}
               />
             </div>
@@ -395,34 +410,32 @@ const StudentResumeForm = () => {
                 placeholder="e.g., 2024"
                 min="1990"
                 max={new Date().getFullYear() + 6}
-                className={`w-full border-2 ${
-                  errors.gradYear ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.gradYear ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 onBlur={handleBlur}
               />
             </div>
-<div>
-  <label className="block font-semibold text-gray-700 mb-1">
-    Age *
-  </label>
-  <input
-    type="number"
-    name="age"
-    required
-    placeholder="e.g., 25"
-    min="18"
- 
-    max="65" // Added max attribute for better browser-native validation
-    className={`w-full border-2 ${
-      errors.age ? "border-red-500" : "border-gray-300"
-    } rounded-lg px-3 py-2`}
-    onBlur={handleBlur}
-  />
-  {/* This part displays the error message */}
-  {errors.age && (
-    <p className="text-red-500 text-xs mt-1">{errors.age}</p>
-  )}
-  </div>
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">
+                Age *
+              </label>
+              <input
+                type="number"
+                name="age"
+                required
+                placeholder="e.g., 25"
+                min="18"
+
+                max="65" // Added max attribute for better browser-native validation
+                className={`w-full border-2 ${errors.age ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
+                onBlur={handleBlur}
+              />
+              {/* This part displays the error message */}
+              {errors.age && (
+                <p className="text-red-500 text-xs mt-1">{errors.age}</p>
+              )}
+            </div>
 
             {/* Graduation Marks (Optional) */}
             <div>
@@ -436,9 +449,8 @@ const StudentResumeForm = () => {
                 max="100"
                 step="0.01"
                 placeholder="e.g., 75.0"
-                className={`w-full border-2 ${
-                  errors.gradMarks ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.gradMarks ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 onBlur={handleBlur}
               />
             </div>
@@ -452,9 +464,8 @@ const StudentResumeForm = () => {
                 type="text"
                 name="address"
                 placeholder="Enter your full address"
-                className={`w-full border-2 ${
-                  errors.address ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.address ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 required
                 onBlur={handleBlur}
               />
@@ -472,9 +483,8 @@ const StudentResumeForm = () => {
                 type="url"
                 name="linkedIn"
                 placeholder="https://linkedin.com/in/your-profile"
-                className={`w-full border-2 ${
-                  errors.linkedIn ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2`}
+                className={`w-full border-2 ${errors.linkedIn ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2`}
                 onBlur={handleBlur}
               />
               {errors.linkedIn && (
@@ -491,9 +501,8 @@ const StudentResumeForm = () => {
                 type="file"
                 name="resume"
                 accept=".pdf,.doc,.docx"
-                className={`w-full border-2 ${
-                  errors.resume ? "border-red-500" : "border-gray-300"
-                } rounded-lg px-3 py-2 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+                className={`w-full border-2 ${errors.resume ? "border-red-500" : "border-gray-300"
+                  } rounded-lg px-3 py-2 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
                 required
                 onChange={handleFileChange}
               />

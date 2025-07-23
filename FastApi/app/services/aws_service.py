@@ -3,15 +3,35 @@ import boto3
 from ..config import settings
 import datetime
 
+# --- CORRECTED CLIENT INITIALIZATION ---
+# Ensure all clients use the same explicit credentials and region from settings
+
+# NEW, CORRECTED s3_client DEFINITION
 s3_client = boto3.client(
     's3',
     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
     region_name=settings.AWS_REGION,
+    # THE FIX: Explicitly set the endpoint URL for the specified region
+    endpoint_url=f"https://s3.{settings.AWS_REGION}.amazonaws.com",
     config=boto3.session.Config(signature_version='s3v4')
 )
-textract_client = boto3.client('textract', region_name=settings.AWS_REGION)
-comprehend_client = boto3.client('comprehend', region_name=settings.AWS_REGION)
+
+textract_client = boto3.client(
+    'textract',
+    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+    region_name=settings.AWS_REGION
+)
+
+comprehend_client = boto3.client(
+    'comprehend',
+    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+    region_name=settings.AWS_REGION
+)
+# --- END OF CORRECTION ---
+
 
 def generate_presigned_urls(resume_filename: str):
     s3_key = f"uploads/{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{resume_filename}"
@@ -19,13 +39,13 @@ def generate_presigned_urls(resume_filename: str):
     put_url = s3_client.generate_presigned_url(
         'put_object',
         Params={"Bucket": settings.BUCKET_NAME, "Key": s3_key},
-        ExpiresIn=3600  # 1 hour for upload
+        ExpiresIn=3600
     )
     
     get_url = s3_client.generate_presigned_url(
         'get_object',
         Params={"Bucket": settings.BUCKET_NAME, "Key": s3_key},
-        ExpiresIn=15 * 24 * 3600  # 15 days for access
+        ExpiresIn=15 * 24 * 3600
     )
     return put_url, get_url, s3_key
 

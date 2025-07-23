@@ -10,6 +10,7 @@ from .. import crud, schemas, models
 from ..database import get_db
 from ..services import aws_service, email_service
 from ..config import settings
+import time
 
 router = APIRouter(
     prefix="/candidates",
@@ -19,6 +20,10 @@ router = APIRouter(
 def process_resume_in_background(resume_id: str, s3_key: str):
     db: Session = next(get_db())
     try:
+        # 2. ADD A DELAY TO PREVENT A RACE CONDITION
+        print("BACKGROUND: Waiting 5 seconds for S3 upload to complete...")
+        time.sleep(5) 
+        
         print(f"BACKGROUND: Analyzing resume for {resume_id}")
         text, entities, skills = aws_service.analyze_resume_from_s3(s3_key)
         crud.update_candidate_analysis(

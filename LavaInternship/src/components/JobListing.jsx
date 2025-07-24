@@ -225,7 +225,7 @@ const JobListing = () => {
                                     <FileText className="w-5 h-5" />
                                     Job Description
                                 </h3>
-                                <p className="text-gray-700 leading-relaxed">{job.jobDescription}</p>
+                                <p className="text-gray-700 leading-relaxed whitespace-pre-line">{job.jobDescription}</p>
                             </div>
 
                             {/* Skills Required */}
@@ -485,7 +485,7 @@ const JobListing = () => {
                                     </div>
 
                                     {/* Job Description */}
-                                    <p className="text-gray-700 mb-4 line-clamp-2">{job.jobDescription}</p>
+                                    <p className="text-gray-700 mb-4 line-clamp-2 whitespace-pre-line">{job.jobDescription}</p>
 
                                     {/* Skills */}
                                     <div className="mb-4">

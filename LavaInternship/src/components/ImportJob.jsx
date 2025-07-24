@@ -21,7 +21,6 @@ const ImportJob = () => {
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
 
-    // --- 1. UPDATE useForm TO INCLUDE ERRORS, getValues, AND DEFAULT VALUES ---
     const { register, handleSubmit, formState: { errors }, reset, getValues } = useForm({
         defaultValues: {
             workType: 'Full-time',
@@ -35,10 +34,8 @@ const ImportJob = () => {
         }
     });
 
-    // This useEffect is now more powerful. It populates the full form.
     useEffect(() => {
         if (parsedData) {
-            // Convert array data back to string for textareas if needed
             const prefillData = {
                 ...parsedData,
                 responsibilities: Array.isArray(parsedData.responsibilities) ? parsedData.responsibilities.join('\n') : parsedData.responsibilities,
@@ -75,7 +72,7 @@ const ImportJob = () => {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setParsedData(response.data);
-            setFileName(file.name); // Keep filename displayed
+            setFileName(file.name);
         } catch (error) {
             console.error('Error parsing PDF:', error);
             setParseError('Failed to parse PDF. Please check the file or try again.');
@@ -85,7 +82,6 @@ const ImportJob = () => {
         }
     };
 
-    // --- 2. REPLACE onSubmit WITH THE MORE ROBUST VERSION FROM JobPostingForm ---
     const onSubmit = async (data) => {
         setIsSubmitting(true);
         try {
@@ -131,7 +127,7 @@ const ImportJob = () => {
         setParsedData(null);
         setFileName('');
         setParseError('');
-        reset(); // Reset form to default values
+        reset();
     }
 
     return (
@@ -170,41 +166,36 @@ const ImportJob = () => {
                              <>
                                 {submitSuccess && <div className="bg-green-100 text-green-700 p-4 rounded mb-6 text-center">Job posted successfully! Redirecting...</div>}
                                 
-                                {/* --- 3. ADD THE FULL FORM STRUCTURE --- */}
                                 <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6 max-h-[70vh] overflow-y-auto pr-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-                                        {/* Job Title */}
+                                        {/* Job Title (Required) */}
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Job Title *</label>
                                             <input {...register('jobTitle', { required: 'Job title is required' })} className={`w-full border-2 ${errors.jobTitle ? "border-red-500" : "border-gray-300"} rounded-lg p-2`} />
                                             {errors.jobTitle && <p className="text-red-500 text-xs mt-1">{errors.jobTitle.message}</p>}
                                         </div>
 
-                                        {/* Department */}
+                                        {/* --- FIX: Department is now a text input (Required) --- */}
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Department *</label>
-                                            <select {...register('department', { required: 'Department is required' })} className={`w-full border-2 ${errors.department ? "border-red-500" : "border-gray-300"} rounded-lg p-2`}>
-                                                <option value="">Select Department</option>
-                                                <option value="Engineering">Engineering</option>
-                                                <option value="Marketing">Marketing</option>
-                                                <option value="Sales">Sales</option>
-                                                <option value="HR">Human Resources</option>
-                                                <option value="Finance">Finance</option>
-                                                <option value="Other">Other</option>
-                                            </select>
+                                            <input 
+                                                {...register('department', { required: 'Department is required' })} 
+                                                className={`w-full border-2 ${errors.department ? "border-red-500" : "border-gray-300"} rounded-lg p-2`}
+                                                placeholder="e.g., Sales"
+                                            />
                                             {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message}</p>}
                                         </div>
 
-                                        {/* Location */}
+                                        {/* Location (Required) */}
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Location *</label>
                                             <input {...register('location', { required: 'Location is required' })} className={`w-full border-2 ${errors.location ? "border-red-500" : "border-gray-300"} rounded-lg p-2`} />
                                             {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location.message}</p>}
                                         </div>
 
-                                        {/* Work Type */}
+                                        {/* --- ALL OTHER FIELDS ARE NOW OPTIONAL --- */}
                                         <div>
-                                            <label className="block font-semibold text-gray-700 mb-1">Work Type *</label>
+                                            <label className="block font-semibold text-gray-700 mb-1">Work Type</label>
                                             <select {...register('workType')} className="w-full border-2 border-gray-300 rounded-lg p-2">
                                                 <option value="Full-time">Full-time</option>
                                                 <option value="Part-time">Part-time</option>
@@ -213,9 +204,8 @@ const ImportJob = () => {
                                             </select>
                                         </div>
 
-                                        {/* Work Mode */}
                                         <div>
-                                            <label className="block font-semibold text-gray-700 mb-1">Work Mode *</label>
+                                            <label className="block font-semibold text-gray-700 mb-1">Work Mode</label>
                                             <select {...register('workMode')} className="w-full border-2 border-gray-300 rounded-lg p-2">
                                                 <option value="On-site">On-site</option>
                                                 <option value="Remote">Remote</option>
@@ -223,9 +213,8 @@ const ImportJob = () => {
                                             </select>
                                         </div>
 
-                                        {/* Experience Level */}
                                         <div>
-                                            <label className="block font-semibold text-gray-700 mb-1">Experience Level *</label>
+                                            <label className="block font-semibold text-gray-700 mb-1">Experience Level</label>
                                             <select {...register('experienceLevel')} className="w-full border-2 border-gray-300 rounded-lg p-2">
                                                 <option value="Entry Level">Entry Level (0-2 years)</option>
                                                 <option value="Mid Level">Mid Level (3-5 years)</option>
@@ -233,7 +222,6 @@ const ImportJob = () => {
                                             </select>
                                         </div>
 
-                                        {/* Min/Max Experience */}
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Min Experience (yrs)</label>
                                             <input type="number" {...register('minExperience')} className="w-full border-2 border-gray-300 rounded-lg p-2" />
@@ -243,13 +231,11 @@ const ImportJob = () => {
                                             <input type="number" {...register('maxExperience')} className="w-full border-2 border-gray-300 rounded-lg p-2" />
                                         </div>
                                         
-                                        {/* Application Deadline */}
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Application Deadline</label>
                                             <input type="date" {...register('applicationDeadline')} className="w-full border-2 border-gray-300 rounded-lg p-2" />
                                         </div>
                                         
-                                        {/* Salary Fields */}
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Currency</label>
                                             <select {...register('currency')} className="w-full border-2 border-gray-300 rounded-lg p-2">
@@ -266,7 +252,6 @@ const ImportJob = () => {
                                             <input type="number" {...register('maxSalary')} className="w-full border-2 border-gray-300 rounded-lg p-2" />
                                         </div>
 
-                                        {/* Other Optional Fields */}
                                         <div><label className="block font-semibold text-gray-700 mb-1">Band</label><input {...register('band')} className="w-full border-2 border-gray-300 rounded-lg p-2" /></div>
                                         <div><label className="block font-semibold text-gray-700 mb-1">Reporting To</label><input {...register('reportingTo')} className="w-full border-2 border-gray-300 rounded-lg p-2" /></div>
                                         <div><label className="block font-semibold text-gray-700 mb-1">Positions Available</label><input type="number" {...register('positionsAvailable')} className="w-full border-2 border-gray-300 rounded-lg p-2" /></div>

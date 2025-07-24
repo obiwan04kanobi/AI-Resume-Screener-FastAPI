@@ -6,11 +6,20 @@ const Home = () => {
   const navigate = useNavigate();
   const [isStudent, setIsStudent] = useState(false);
 
+  // AFTER
   const handleGetStarted = () => {
     if (isStudent) {
       navigate('/job-listings');
     } else {
-      navigate('/hr-login');
+      // Check if an auth token already exists in local storage
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        // If the user is already logged in, go directly to the dashboard
+        navigate('/dashboard');
+      } else {
+        // Otherwise, go to the login page
+        navigate('/hr-login');
+      }
     }
   };
 
@@ -29,14 +38,12 @@ const Home = () => {
             title="HR"
           />
           <div
-            className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300 ${
-              isStudent ? 'bg-[#DE5499]' : 'bg-[#264143]'
-            }`}
+            className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300 ${isStudent ? 'bg-[#DE5499]' : 'bg-[#264143]'
+              }`}
           >
             <div
-              className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
-                isStudent ? 'translate-x-6' : ''
-              }`}
+              className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${isStudent ? 'translate-x-6' : ''
+                }`}
             />
           </div>
           <FaUserGraduate
@@ -59,9 +66,8 @@ const Home = () => {
 
         <button
           onClick={handleGetStarted}
-          className={`btn font-bold w-60 py-3 rounded-lg shadow hover:opacity-90 transition text-white ${
-            isStudent ? 'bg-[#264143]' : 'bg-[#DE5499]'
-          }`}
+          className={`btn font-bold w-60 py-3 rounded-lg shadow hover:opacity-90 transition text-white ${isStudent ? 'bg-[#264143]' : 'bg-[#DE5499]'
+            }`}
         >
           {isStudent ? 'See Job Listings' : 'HR Login'}
         </button>

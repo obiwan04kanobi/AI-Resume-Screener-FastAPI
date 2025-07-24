@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # --- FastAPI Backend Service ---
+  backend:
+    build: ./FastApi
+    container_name: resume_screener_backend
+    env_file:
+      - ./FastApi/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./FastApi/app:/app/app
+    # This setting allows the container to connect to your host machine
+    # using the special DNS name 'host.docker.internal'.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # --- React Frontend Service ---
+  frontend:
+    build: ./LavaInternship
+    container_name: resume_screener_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

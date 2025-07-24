@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Users, Calendar, Building, Briefcase, Star, X, User, FileText, Target, Award, CheckCircle, ShieldCheck, Plane } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const JobListing = () => {
     const [jobs, setJobs] = useState([]);
@@ -8,7 +8,6 @@ const JobListing = () => {
     const [selectedJob, setSelectedJob] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const navigate = useNavigate();
-    const { jobId } = useParams();
     const [filters, setFilters] = useState({
         department: '',
         workType: '',
@@ -17,16 +16,21 @@ const JobListing = () => {
         search: ''
     });
 
-    // This function no longer uses localStorage
-    const handleApplyNow = (jobIdToApply) => {
-        navigate(`/studentform/${jobIdToApply}`);
+    const handleApplyNow = (jobId, jobTitle) => {
+        // Store job info in localStorage for the form to access
+        localStorage.setItem('applicationJobId', jobId);
+        localStorage.setItem('applicationJobTitle', jobTitle);
+
+        // Navigate to resume form
+        navigate('/studentform');
     };
+
 
     // Fetch jobs from API
     useEffect(() => {
         const fetchJobs = async () => {
             try {
-                const res = await fetch("http://localhost:8000/jobs/",);
+                const res = await fetch("https://4vj8gtysxi.execute-api.ap-south-1.amazonaws.com/JobListings");
                 const data = await res.json();
 
                 if (data.status === "success" && data.data) {
@@ -66,14 +70,8 @@ const JobListing = () => {
     }, []);
 
     useEffect(() => {
-        if (jobId && jobs.length > 0) {
-            const jobToOpen = jobs.find(job => job.id === jobId);
-            if (jobToOpen) {
-                openModal(jobToOpen);
-            }
-        }
         filterJobs();
-    }, [jobId, jobs]);
+    }, [filters, jobs]);
 
     const filterJobs = () => {
         let filtered = jobs.filter(job => {
@@ -140,15 +138,10 @@ const JobListing = () => {
         document.body.style.overflow = 'hidden';
     };
 
-    // Replace your existing closeModal function with this one
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedJob(null);
         document.body.style.overflow = 'unset';
-        // If you arrived via a deep link, this cleans up the URL
-        if (jobId) {
-            navigate('/job-listings', { replace: true });
-        }
     };
 
     // Modal component
@@ -321,7 +314,7 @@ const JobListing = () => {
                     <div className="p-6 border-t border-gray-200 bg-gray-50">
                         <div className="flex gap-3">
                             <button
-                                onClick={() => handleApplyNow(job.id)}
+                                onClick={() => handleApplyNow(job.id, job.jobTitle)}
                                 className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
                                 Apply Now
                             </button>
@@ -530,7 +523,7 @@ const JobListing = () => {
                                     {/* Action Buttons */}
                                     <div className="flex gap-3">
                                         <button
-                                            onClick={() => handleApplyNow(job.id)}
+                                            onClick={() => handleApplyNow(job.id, job.jobTitle)}
                                             className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium">
                                             Apply Now
                                         </button>

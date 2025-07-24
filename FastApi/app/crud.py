@@ -131,3 +131,38 @@ def create_review_token(db: Session, resume_id: str, token_str: str):
 
 def get_review_token(db: Session, token_str: str):
     return db.query(models.ReviewToken).filter(models.ReviewToken.token == token_str).first()
+
+# HR Login/Signup
+
+def get_hr_user_by_email(db: Session, email: str):
+    return db.query(models.HRUser).filter(models.HRUser.email == email).first()
+
+def create_hr_user(db: Session, user: schemas.HRUserCreate):
+    from .security import get_password_hash
+    hashed_password = get_password_hash(user.password)
+    db_user = models.HRUser(
+        email=user.email,
+        hashed_password=hashed_password,
+        full_name=user.full_name
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def create_or_update_verification_code(db: Session, email: str, code: str):
+    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    
+    db_code = db.query(models.VerificationCode).filter(models.VerificationCode.email == email).first()
+    if db_code:
+        db_code.code = code
+        db_code.expires_at = expires_at
+    else:
+        db_code = models.VerificationCode(email=email, code=code, expires_at=expires_at)
+        db.add(db_code)
+    
+    db.commit()
+    return db_code
+
+def get_verification_code(db: Session, email: str):
+    return db.query(models.VerificationCode).filter(models.VerificationCode.email == email).first()

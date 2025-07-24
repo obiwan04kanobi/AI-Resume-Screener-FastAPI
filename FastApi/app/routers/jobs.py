@@ -48,3 +48,11 @@ def update_full_job(job_id: str, job_data: schemas.JobUpdateDetails, db: Session
     if updated_job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return updated_job
+
+@router.get("/{job_id}", response_model=schemas.JobResponse)
+def get_job_details(job_id: str, db: Session = Depends(get_db)):
+    """Fetches a single job by its ID."""
+    db_job = crud.get_job(db, job_id=job_id)
+    if db_job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return db_job

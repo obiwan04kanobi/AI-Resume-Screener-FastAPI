@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signOut } from 'aws-amplify/auth';
+
+// --- FIX: The 'signOut' import from aws-amplify is no longer needed ---
 
 const Navbar = ({ onHomeClick }) => {
     const navigate = useNavigate();
@@ -14,9 +15,12 @@ const Navbar = ({ onHomeClick }) => {
         setIsMenuOpen(false);
     };
 
-    const handleLogout = async () => {
-        await signOut();
-        navigate('/');
+    // --- FIX: Updated the logout logic for the new token-based system ---
+    const handleLogout = () => {
+        // Remove the authentication token from local storage
+        localStorage.removeItem('authToken');
+        // Navigate to the home page and replace the history
+        navigate('/', { replace: true });
     };
 
     const navLinks = [

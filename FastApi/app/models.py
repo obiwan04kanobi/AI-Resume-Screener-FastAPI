@@ -75,3 +75,16 @@ class ReviewToken(Base):
     expires_at = Column(DATETIME, nullable=False)
 
     candidate = relationship("Candidate", back_populates="review_tokens")
+
+class HRUser(Base):
+    __tablename__ = "hr_users"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(255))
+
+class VerificationCode(Base):
+    __tablename__ = "verification_codes"
+    email = Column(String(255), primary_key=True, index=True)
+    code = Column(String(6), nullable=False)
+    expires_at = Column(DATETIME, nullable=False)

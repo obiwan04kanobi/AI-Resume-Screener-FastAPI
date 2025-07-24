@@ -129,3 +129,21 @@ def send_review_link_email(to_email: str, cc_emails: List[str], candidate_name: 
     </body></html>
     """
     send_email(to_email, subject, plain_body, html_body, cc_emails)
+
+    
+def send_verification_code_email(to_email: str, code: str):
+    subject = "Your HR Portal Verification Code"
+    plain_body = f"Your verification code is: {code}\n\nThis code will expire in 10 minutes."
+    html_body = f"""
+    <html><body>
+        <div style="font-family: sans-serif; text-align: center; padding: 20px;">
+            <h2 style="color: #264143;">HR Portal Verification</h2>
+            <p>Your verification code is:</p>
+            <p style="font-size: 24px; font-weight: bold; letter-spacing: 5px; background-color: #f0f0f0; padding: 10px 20px; border-radius: 8px; display: inline-block;">
+                {code}
+            </p>
+            <p style="color: #777;">This code will expire in 10 minutes.</p>
+        </div>
+    </body></html>
+    """
+    send_email(to_email, subject, plain_body, html_body)

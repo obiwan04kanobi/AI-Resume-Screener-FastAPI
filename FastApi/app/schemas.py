@@ -131,3 +131,24 @@ class GroupedJobResponse(BaseModel):
 # In app/schemas.py, add this class
 class JobUpdateDetails(JobBase):
     pass
+
+# Signup/Signin logic
+
+class HRUserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
+
+class HRUserLogin(BaseModel):
+    username: EmailStr # The login form will use 'username' for the email field
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+class HRUserCreateWithCode(HRUserCreate):
+    code: str

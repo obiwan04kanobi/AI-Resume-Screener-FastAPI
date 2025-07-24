@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from './Navbar';
@@ -12,34 +12,16 @@ const JobPostingForm = () => {
     const {
         register,
         handleSubmit,
-        control,
         formState: { errors },
         reset,
-        watch,
-        getValues // To get form values for cross-field validation
+        getValues
     } = useForm({
         defaultValues: {
-            jobTitle: '',
-            department: '',
-            location: '',
             workType: 'Full-time',
             workMode: 'On-site',
             experienceLevel: 'Entry Level',
-            minExperience: '',
-            maxExperience: '',
-            minSalary: '',
-            maxSalary: '',
             currency: 'INR',
-            jobDescription: '',
-            responsibilities: '',
-            requirements: '',
-            qualifications: '', // Not required
-            skills: '',
-            benefits: '', // Not required
-            applicationDeadline: '',
             positionsAvailable: 1,
-            reportingTo: '', // Not required
-            contactEmail: '', // Not required
             isUrgent: false,
             travelRequired: false,
             backgroundCheckRequired: false
@@ -49,59 +31,46 @@ const JobPostingForm = () => {
     const onSubmit = async (data) => {
         setIsSubmitting(true);
         try {
-            // Process data for submission
             const processedData = {
                 ...data,
-                // Convert numbers from strings to actual numbers where applicable
                 minExperience: data.minExperience ? Number(data.minExperience) : null,
                 maxExperience: data.maxExperience ? Number(data.maxExperience) : null,
                 minSalary: data.minSalary ? Number(data.minSalary) : null,
                 maxSalary: data.maxSalary ? Number(data.maxSalary) : null,
                 positionsAvailable: Number(data.positionsAvailable),
-                // Process text areas into arrays
                 skills: data.skills.split(',').map(skill => skill.trim()).filter(skill => skill),
                 requirements: data.requirements.split('\n').filter(req => req.trim()),
                 responsibilities: data.responsibilities.split('\n').filter(resp => resp.trim()),
                 qualifications: data.qualifications.split('\n').filter(qual => qual.trim()),
                 benefits: data.benefits.split('\n').filter(benefit => benefit.trim()),
                 postedDate: new Date().toISOString(),
-                status: 'Active'
+                status: 'Active',
+                // --- THE FIX: Convert empty optional fields to null ---
+                contactEmail: data.contactEmail || null,
+                reportingTo: data.reportingTo || null,
             };
 
-            // 1. Post the job to your primary database
             await axios.post('http://127.0.0.1:8000/jobs/', processedData);
-
-            console.log('Job posted successfully to the database.');
-
-            // 2. **NEW: Trigger the email notification Lambda**
-            try {
-                // **IMPORTANT: REPLACE** with your new email notification Lambda's API Gateway URL
-                const NOTIFICATION_LAMBDA_URL = "https://YOUR-NEW-API-GATEWAY-URL.execute-api.ap-south-1.amazonaws.com/default/sendJobNotification";
-                
-                await axios.post(NOTIFICATION_LAMBDA_URL, processedData);
-                console.log('Successfully triggered email notifications to candidates.');
-
-            } catch (emailError) {
-                // This catch block ensures that if the email notification fails,
-                // it won't prevent the rest of the success logic from running.
-                console.error('Could not send notification emails:', emailError);
-            }
 
             setSubmitSuccess(true);
             setTimeout(() => {
                 setSubmitSuccess(false);
                 reset();
-                navigate('/dashboard');
+                navigate('/manage-jobs');
             }, 2000);
 
         } catch (error) {
             console.error('Error posting job:', error);
-            alert('Failed to post job. Please try again.');
+            if (error.response && error.response.data && error.response.data.detail) {
+                const errorDetails = error.response.data.detail.map(e => `${e.loc[1]}: ${e.msg}`).join('\n');
+                alert(`Error:\n${errorDetails}`);
+            } else {
+                alert('Failed to post job. Please try again.');
+            }
         } finally {
             setIsSubmitting(false);
         }
     };
-
     return (
         <div className="min-h-screen flex flex-col items-stretch justify-start p-0 m-0 w-full" style={{ paddingTop: '120px' }}>
             <div className="w-full fixed top-0 left-0 z-50">

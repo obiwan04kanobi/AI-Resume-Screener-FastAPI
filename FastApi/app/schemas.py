@@ -9,6 +9,8 @@ class JobBase(BaseModel):
     location: Optional[str] = None
     workType: Optional[str] = None
     workMode: Optional[str] = None
+    band: Optional[str] = None
+    preferredIndustry: Optional[str] = None
     experienceLevel: Optional[str] = None
     minExperience: Optional[int] = None
     maxExperience: Optional[int] = None

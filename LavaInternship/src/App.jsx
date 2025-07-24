@@ -9,7 +9,8 @@ import ManageJobs from './components/ManageJobs';
 import ReviewerPage from './components/ReviewerPage';
 import CandidateDatabase from './components/CandidateDatabase';
 import AuthPage from './components/AuthPage';
-import SmartPost from './components/SmartPost'
+// import SmartPost from './components/SmartPost'
+import ImportJob from './components/ImportJob';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('authToken');
@@ -36,10 +37,10 @@ function App() {
         {/* --- Protected HR Routes --- */}
         <Route path="/dashboard" element={<ProtectedRoute><HRDashboard /></ProtectedRoute>} />
         <Route path="/candidate-database" element={<ProtectedRoute><CandidateDatabase /></ProtectedRoute>} />
-        <Route path="/smart-post" element={<ProtectedRoute><SmartPost/></ProtectedRoute>}/>
+        {/* <Route path="/smart-post" element={<ProtectedRoute><SmartPost/></ProtectedRoute>}/> */}
         <Route path="/post-job" element={<ProtectedRoute><JobPostingForm /></ProtectedRoute>} />
         <Route path="/manage-jobs" element={<ProtectedRoute><ManageJobs /></ProtectedRoute>} />
-
+        <Route path="/import-job" element={<ProtectedRoute><ImportJob /></ProtectedRoute>}/>
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

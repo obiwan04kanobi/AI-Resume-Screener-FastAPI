@@ -69,3 +69,9 @@ CREATE TABLE review_tokens (
     expires_at DATETIME NOT NULL,
     FOREIGN KEY (resume_id) REFERENCES candidates(resume_id) ON DELETE CASCADE
 );
+
+USE resume_portal;
+
+ALTER TABLE jobs
+ADD COLUMN band VARCHAR(255),
+ADD COLUMN preferredIndustry VARCHAR(255);

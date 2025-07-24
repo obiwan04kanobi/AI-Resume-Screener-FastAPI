@@ -16,6 +16,8 @@ class Job(Base):
     experienceLevel = Column(String(100))
     minExperience = Column(Integer)
     maxExperience = Column(Integer)
+    band = Column(String(255), nullable=True)
+    preferredIndustry = Column(String(255), nullable=True)
     minSalary = Column(BIGINT)
     maxSalary = Column(BIGINT)
     currency = Column(String(10))

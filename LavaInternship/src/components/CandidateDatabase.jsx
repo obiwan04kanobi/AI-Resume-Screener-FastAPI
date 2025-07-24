@@ -2,15 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Navbar from './Navbar';
 
-// Helper function to parse date strings like '17/07/2025, 21:49:58'
-const parseCandidateDate = (dateStr) => {
-    if (!dateStr) return new Date(0); // Return a very old date for sorting purposes if null
-    const [datePart, timePart] = dateStr.split(',');
-    if (!datePart) return new Date(0);
-    const [day, month, year] = datePart.split('/');
-    // Note: JavaScript's Date constructor is month-indexed (0-11)
-    return new Date(year, month - 1, day);
-};
+// --- FIX: This helper function is no longer needed for sorting ---
+// The new API provides standard ISO dates which can be compared directly.
 
 // Helper function to format gender
 const formatGender = (genderCode) => {
@@ -40,21 +33,22 @@ const CandidateDatabase = () => {
         const fetchCandidates = async () => {
             setLoading(true);
             try {
-                const { data } = await axios.get('https://k2kqvumlg6.execute-api.ap-south-1.amazonaws.com/getResume');
-                
-                // Sort the data by the 'datetime' field in descending order (newest first)
-                const sortedData = data.sort((a, b) => {
-                    const dateA = parseCandidateDate(a.datetime);
-                    const dateB = parseCandidateDate(b.datetime);
-                    return dateB - dateA; // Sort descending
-                });
+                // --- FIX: Update the API endpoint to the new FastAPI server ---
+                const { data } = await axios.get('http://localhost:8000/candidates/');
+
+                // --- FIX: Sort using the new 'submission_timestamp' ISO date string ---
+                const sortedData = data.sort((a, b) =>
+                    new Date(b.submission_timestamp) - new Date(a.submission_timestamp)
+                );
 
                 setAllCandidates(sortedData);
                 setFilteredCandidates(sortedData);
 
-                const jobTypes = [...new Set(data.map(c => c.department).filter(Boolean))];
+                // --- FIX: Access department from the nested 'job' object ---
+                const jobTypes = [...new Set(data.map(c => c.job?.department).filter(Boolean))];
                 const experiences = [...new Set(data.map(c => c.experience).filter(Boolean))];
                 setFilterOptions({ jobTypes, experiences });
+
             } catch (err) {
                 console.error("Error fetching candidates:", err);
                 setError("Failed to fetch candidate data.");
@@ -75,7 +69,8 @@ const CandidateDatabase = () => {
                 (c.email && c.email.toLowerCase().includes(searchLower));
 
             const matchesGender = !filters.gender || c.gender === filters.gender;
-            const matchesJobType = !filters.jobType || c.department === filters.jobType;
+            // --- FIX: Access department from the nested 'job' object ---
+            const matchesJobType = !filters.jobType || c.job?.department === filters.jobType;
             const matchesExperience = !filters.experience || c.experience === filters.experience;
 
             return matchesSearch && matchesGender && matchesJobType && matchesExperience;
@@ -206,13 +201,18 @@ const CandidateDatabase = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{candidate.first_name} {candidate.last_name}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.email || 'N/A'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.phone || 'N/A'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.department || 'N/A'}</td>
+
+                                                {/* --- FIX: Access department from the nested job object --- */}
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.job?.department || 'N/A'}</td>
+
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.experience || 'N/A'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{formatGender(candidate.gender)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.age || 'N/A'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.status || 'N/A'}</td>
+
+                                                {/* --- FIX: Use the correct 'submission_timestamp' field and format it --- */}
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                                                    {candidate.datetime && parseCandidateDate(candidate.datetime) ? parseCandidateDate(candidate.datetime).toLocaleDateString() : 'N/A'}
+                                                    {candidate.submission_timestamp ? new Date(candidate.submission_timestamp).toLocaleDateString() : 'N/A'}
                                                 </td>
                                             </tr>
                                         ))}

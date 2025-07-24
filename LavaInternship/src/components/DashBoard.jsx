@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SendForReview from './SendForReview';
-import { signOut } from 'aws-amplify/auth';
 import axios from 'axios';
 import {
   PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
@@ -18,13 +17,11 @@ const HRDashboard = () => {
   const [filteredCandidates, setFilteredCandidates] = useState([]);
   const [genderData, setGenderData] = useState([]);
   const [statusData, setStatusData] = useState([]);
-  const [currentStatus, setCurrentStatus] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [departmentData, setDepartmentData] = useState([]);
   const [reviewTimestamps, setReviewTimestamps] = useState({});
   const navigate = useNavigate();
 
-  // Filter states
   const [filters, setFilters] = useState({
     department: '',
     status: '',
@@ -34,7 +31,6 @@ const HRDashboard = () => {
     dateTo: ''
   });
 
-  // Available filter options
   const [filterOptions, setFilterOptions] = useState({
     departments: [],
     statuses: [],
@@ -55,28 +51,25 @@ const HRDashboard = () => {
     navigate('/dashboard');
   };
 
+  // --- FIX #2: Correctly parse the new ISO date format from the API ---
   const parseCandidateDate = (dateStr) => {
     if (!dateStr) return null;
-    const [datePart] = dateStr.split(',');
-    if (!datePart) return null;
-    const [day, month, year] = datePart.split('/');
-    // Month is 0-indexed in JavaScript's Date constructor
-    return new Date(year, month - 1, day);
+    return new Date(dateStr); // The new Date() constructor handles ISO strings perfectly
   };
 
-  // --- UPDATED LOGIC FOR PIE CHARTS ---
-  // This function now filters data for the last 30 days before calculating stats for pie charts.
   const processStats = (data) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const recentData = data.filter(candidate => {
-      const candidateDate = parseCandidateDate(candidate.datetime);
+      // Use 'submission_timestamp' instead of 'datetime'
+      const candidateDate = parseCandidateDate(candidate.submission_timestamp);
       return candidateDate && candidateDate >= thirtyDaysAgo;
     });
 
+    // --- FIX #3: Access department from the nested job object ---
     const departmentCount = recentData.reduce((acc, curr) => {
-      const dept = curr.department || 'Unknown';
+      const dept = curr.job?.department || 'Unknown'; // Use optional chaining for safety
       acc[dept] = (acc[dept] || 0) + 1;
       return acc;
     }, {});
@@ -99,7 +92,8 @@ const HRDashboard = () => {
 
   const extractFilterOptions = (data) => {
     const activeData = data.filter(c => c.status !== "Rejected");
-    const departments = [...new Set(activeData.map(c => c.department).filter(Boolean))];
+    // --- FIX #3: Access department from the nested job object ---
+    const departments = [...new Set(activeData.map(c => c.job?.department).filter(Boolean))];
     const statuses = [...new Set(activeData.map(c => c.status).filter(Boolean))];
     const genders = [...new Set(activeData.map(c => c.gender).filter(Boolean))];
     const workPrefs = [...new Set(activeData.map(c => c.work_pref).filter(Boolean))];
@@ -112,7 +106,6 @@ const HRDashboard = () => {
     });
   };
 
-  // This function remains unchanged for the bar chart logic.
   const processSubmissionStats = (data) => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -123,7 +116,8 @@ const HRDashboard = () => {
     const submissions = { lastWeek: 0, lastTwoWeeks: 0, lastMonth: 0, lastThreeMonths: 0 };
 
     data.forEach(candidate => {
-      const candidateDate = parseCandidateDate(candidate.datetime);
+      // Use 'submission_timestamp' instead of 'datetime'
+      const candidateDate = parseCandidateDate(candidate.submission_timestamp);
       if (!candidateDate) return;
 
       if (candidateDate >= oneWeekAgo) submissions.lastWeek++;
@@ -147,14 +141,17 @@ const HRDashboard = () => {
 
     if (filters.dateFrom) {
       const dateFrom = new Date(filters.dateFrom);
-      filtered = filtered.filter(c => parseCandidateDate(c.datetime) >= dateFrom);
+      // Use 'submission_timestamp'
+      filtered = filtered.filter(c => parseCandidateDate(c.submission_timestamp) >= dateFrom);
     }
     if (filters.dateTo) {
       const toDate = new Date(filters.dateTo);
-      filtered = filtered.filter(c => parseCandidateDate(c.datetime) <= toDate);
+      // Use 'submission_timestamp'
+      filtered = filtered.filter(c => parseCandidateDate(c.submission_timestamp) <= toDate);
     }
     if (filters.department) {
-      filtered = filtered.filter(c => c.department === filters.department);
+      // --- FIX #3: Access department from the nested job object ---
+      filtered = filtered.filter(c => c.job?.department === filters.department);
     }
     if (filters.status) {
       filtered = filtered.filter(c => c.status === filters.status);
@@ -180,10 +177,10 @@ const HRDashboard = () => {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const { data } = await axios.get('https://k2kqvumlg6.execute-api.ap-south-1.amazonaws.com/getResume');
+        const { data } = await axios.get('http://localhost:8000/candidates/');
         setCandidates(data);
-        processStats(data); // This will now process stats for the last 30 days for pie charts
-        processSubmissionStats(data); // This remains unchanged for the bar chart
+        processStats(data);
+        processSubmissionStats(data);
         extractFilterOptions(data);
         const initialFiltered = data.filter(c => c.status !== "Rejected");
         setFilteredCandidates(initialFiltered);
@@ -201,14 +198,13 @@ const HRDashboard = () => {
     }
   }, [filters, candidates]);
 
+  // --- FIX #1: Use the new FastAPI endpoint for updating status ---
   const updateStatus = async (status) => {
     try {
-      setCurrentStatus(status);
-      await axios.post("https://c27ubyy9fi.execute-api.ap-south-1.amazonaws.com/UpdateStatus", {
+      // Use PATCH method and the new endpoint structure
+      await axios.patch("http://localhost:8000/candidates/status", {
         resume_id: selectedCandidate.resume_id,
-        email: selectedCandidate.email,
-        first_name: selectedCandidate.first_name,
-        status,
+        status: status, // Send the new status
       });
 
       alert(`Candidate ${selectedCandidate.first_name} marked as ${status}.`);
@@ -217,7 +213,7 @@ const HRDashboard = () => {
         c.resume_id === selectedCandidate.resume_id ? { ...c, status } : c
       );
       setCandidates(updatedCandidates);
-      processStats(updatedCandidates); // Re-process stats with updated data
+      processStats(updatedCandidates);
       extractFilterOptions(updatedCandidates);
 
       if (status === "Rejected") {
@@ -513,9 +509,9 @@ const HRDashboard = () => {
               <div>
                 <h3 className="font-semibold text-[#264143] mb-2">Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedCandidate.skills?.map((skill, idx) => (
+                  {selectedCandidate.extracted_skills?.map((extracted_skills, idx) => (
                     <span key={idx} className="bg-[#264143] text-white text-xs px-2 py-1 rounded-full">
-                      {skill}
+                      {extracted_skills}
                     </span>
                   ))}
                 </div>

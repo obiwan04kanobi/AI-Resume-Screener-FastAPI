@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Send } from 'lucide-react';
 
 // Replace with your actual API Gateway endpoint
-const CREATE_REVIEW_LINK_API = 'https://orsugtf042.execute-api.ap-south-1.amazonaws.com/createreviewlink';
+const CREATE_REVIEW_LINK_API = 'http://localhost:8000/candidates/send-review';
 
 const SendForReview = ({ candidate }) => {
     const [reviewerEmail, setReviewerEmail] = useState('');

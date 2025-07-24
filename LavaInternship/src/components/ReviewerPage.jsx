@@ -3,10 +3,8 @@ import { useSearchParams, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, XCircle } from 'lucide-react';
 
-// --- Configuration ---
-// IMPORTANT: Replace with your actual API endpoint for validating the review token.
-const VALIDATE_TOKEN_API = 'https://pgducqupaf.execute-api.ap-south-1.amazonaws.com/validatetoken'; // The GET /review endpoint
-const UPDATE_STATUS_API = 'https://c27ubyy9fi.execute-api.ap-south-1.amazonaws.com/UpdateStatus'; // Your existing update status endpoint
+const VALIDATE_TOKEN_API = 'http://localhost:8000/candidates/review';
+const UPDATE_STATUS_API = 'http://localhost:8000/candidates/status';
 
 const ReviewerPage = () => {
     const [searchParams] = useSearchParams();
@@ -31,7 +29,7 @@ const ReviewerPage = () => {
                 setCandidate(response.data);
             } catch (err) {
                 console.error("Validation Error:", err);
-                setError(err.response?.data?.error || 'Failed to validate the review link. It may be invalid or expired.');
+                setError(err.response?.data?.detail || 'Failed to validate the review link. It may be invalid or expired.');
             } finally {
                 setLoading(false);
             }
@@ -45,10 +43,8 @@ const ReviewerPage = () => {
 
         setIsUpdating(true);
         try {
-            await axios.post(UPDATE_STATUS_API, {
+            await axios.patch(UPDATE_STATUS_API, {
                 resume_id: candidate.resume_id,
-                email: candidate.email,
-                first_name: candidate.first_name,
                 status: status,
             });
             setActionMessage(`Thank you. The candidate has been marked as '${status}'. You may now close this window.`);
@@ -94,25 +90,38 @@ const ReviewerPage = () => {
             </div>
         );
     }
-    
+
     if (!candidate) {
         return <Navigate to="/" />;
     }
-
+    if (!candidate.job) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-yellow-50 p-4">
+                <div className="text-center bg-white p-8 rounded-lg shadow-lg border border-yellow-200">
+                    <XCircle className="mx-auto h-12 w-12 text-yellow-500" />
+                    <h2 className="mt-4 text-2xl font-bold text-yellow-800">Job Not Found</h2>
+                    <p className="mt-2 text-yellow-600">This candidate does not have a valid job associated. Please contact support.</p>
+                </div>
+            </div>
+        );
+    }
     return (
-        <div className="min-h-screen bg-[#dda5a5] p-6 flex items-center justify-center font-['Segoe_UI']">
+        <div className="min-h-screen bg-[#dda5a5] p-4 sm:p-6 flex items-center justify-center font-['Segoe_UI']">
             <div className="w-full max-w-4xl">
-                <div className="bg-white border-2 border-[#264143] rounded-xl shadow-md p-6 space-y-4">
+                {/* --- FIX: Added max-h-[90vh] and overflow-y-auto to make this card scrollable --- */}
+                <div className="bg-white border-2 border-[#264143] rounded-xl shadow-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
                     <h2 className="text-2xl font-bold text-[#264143]">{candidate.first_name} {candidate.last_name}</h2>
+
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
                         <p>📧 {candidate.email}</p>
-                        <p>📍 {candidate.address}</p>
                         <p>📞 {candidate.phone}</p>
+                        <p>📍 {candidate.address}</p>
                         <p>🚻 {candidate.gender}</p>
-                        <p>🏢 {candidate.department}</p>
-                        <p>🎓 Grad: {candidate.grad_marks}% ({candidate.grad_year})</p>
-                        <p>🏫 12th: {candidate.marks12}% ({candidate.pass12})</p>
-                        <p>💼 Prefers: {candidate.work_pref}</p>
+                        <p>🏢 {candidate.job?.department}</p>
+                        <p>💼 Experience: {candidate.experience}</p>
+                        <p>🎓 Grad: {candidate.grad_marks || 'N/A'}% ({candidate.grad_year || 'N/A'})</p>
+                        <p>🏫 12th: {candidate.marks12 || 'N/A'}% ({candidate.pass12 || 'N/A'})</p>
+                        <p>🏠 Prefers: {candidate.work_pref}</p>
                         {candidate.linkedin && (
                             <p>🔗 <a href={candidate.linkedin} target="_blank" rel="noreferrer" className="text-blue-600 underline">LinkedIn Profile</a></p>
                         )}
@@ -122,7 +131,7 @@ const ReviewerPage = () => {
                     <div>
                         <h3 className="font-semibold text-[#264143] mb-2">Skills</h3>
                         <div className="flex flex-wrap gap-2">
-                            {candidate.skills?.map((skill, idx) => (
+                            {candidate.extracted_skills?.map((skill, idx) => (
                                 <span key={idx} className="bg-[#264143] text-white text-xs px-2 py-1 rounded-full">
                                     {skill}
                                 </span>
@@ -131,9 +140,9 @@ const ReviewerPage = () => {
                     </div>
 
                     {/* Organizations */}
-                    {candidate.entities?.ORGANIZATION && (
+                    {candidate.entities?.ORGANIZATION?.length > 0 && (
                         <div>
-                            <h3 className="font-semibold text-[#264143] mb-2">Organizations</h3>
+                            <h3 className="font-semibold text-[#264143] mb-2">Organizations & Education</h3>
                             <div className="flex flex-wrap gap-2">
                                 {candidate.entities.ORGANIZATION.map((org, idx) => (
                                     <span key={idx} className="bg-[#264143] text-white text-xs px-2 py-1 rounded-full">
@@ -148,11 +157,11 @@ const ReviewerPage = () => {
                     {/* Skill Match */}
                     {candidate.matched_skills?.length > 0 && (
                         <div className="mt-6">
-                            <h3 className="font-semibold text-[#264143] mb-2">Skill Match</h3>
+                            <h3 className="font-semibold text-[#264143] mb-2">Skill Match with "{candidate.job?.jobTitle}"</h3>
                             <p className="text-sm text-gray-600 mb-2">
                                 Matched {candidate.matched_skills.length} skills (
                                 <span className="font-semibold text-[#264143]">
-                                    {candidate.match_percentage}%
+                                    {candidate.match_percentage?.toFixed(2)}%
                                 </span>)
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -171,12 +180,11 @@ const ReviewerPage = () => {
                             <div className="mt-4">
                                 <a
                                     href={candidate.resume_url}
-                                    download
                                     target="_blank"
                                     rel="noreferrer"
                                     className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
                                 >
-                                    ⬇️ Preview Resume (PDF)
+                                    ⬇️ Preview Resume
                                 </a>
                             </div>
                         </div>
@@ -195,16 +203,16 @@ const ReviewerPage = () => {
                             </button>
                             <button
                                 className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md disabled:opacity-50"
-                                onClick={() => handleUpdateStatus("Rejected")}
+                                onClick={() => handleUpdateStatus("Rejected by HOD")}
                                 disabled={isUpdating}
                             >
-                                {isUpdating ? 'Submitting...' : '❌ Rejected by HOD'}
+                                {isUpdating ? 'Submitting...' : '❌ Reject Candidate'}
                             </button>
                         </div>
                     </div>
                 </div>
                 <p className="text-center text-xs text-white mt-4">
-                    Accessed on {new Date().toLocaleString()}. This is a secure, single-use link.
+                    Accessed on {new Date().toLocaleString()}. This is a secure link.
                 </p>
             </div>
         </div>

@@ -166,3 +166,7 @@ def create_or_update_verification_code(db: Session, email: str, code: str):
 
 def get_verification_code(db: Session, email: str):
     return db.query(models.VerificationCode).filter(models.VerificationCode.email == email).first()
+
+def get_employees(db: Session):
+    """Retrieves all employees from the database."""
+    return db.query(models.Employee).all()

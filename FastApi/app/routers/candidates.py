@@ -108,17 +108,22 @@ def update_applicant_status(
     )
     return updated_candidate
 
+# In app/routers/candidates.py
+
 @router.post("/send-review")
 def send_candidate_for_review(req: schemas.SendReviewRequest, db: Session = Depends(get_db)):
+
+    # print(f"DEBUG: Received request payload: reviewer_email='{req.reviewer_email}', cc_emails={req.cc_emails}")
+
     payload = {
         'resume_id': req.resume_id,
-        'reviewer_email': req.reviewer_email,
         'exp': datetime.now(timezone.utc) + timedelta(days=10)
     }
     token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS256')
     crud.create_review_token(db, req.resume_id, token)
     
     review_link = f"{settings.FRONTEND_REVIEW_URL}?token={token}"
+    
     email_service.send_review_link_email(
         req.reviewer_email, req.cc_emails, req.candidate_name, req.department, review_link
     )

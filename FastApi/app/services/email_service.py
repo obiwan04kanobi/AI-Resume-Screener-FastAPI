@@ -118,17 +118,27 @@ def send_status_update_email(to_email: str, first_name: str, new_status: str, ex
 
 def send_review_link_email(to_email: str, cc_emails: List[str], candidate_name: str, department: str, review_link: str):
     subject = f"Review Requested for Candidate: {candidate_name}"
+    
+    final_cc_list = [email for email in cc_emails if email != to_email] if cc_emails else []
+
     plain_body = f"Hello,\n\nPlease review the profile for {candidate_name} for a position in the {department} department.\nUse this secure link: {review_link}\n\nThank you."
     html_body = f"""
-    <html><body>
+    <html>
+    <head></head>
+    <body style="font-family: sans-serif;">
         <h2>Candidate Review Request</h2>
         <p>Hello,</p>
         <p>You have been asked to review the profile for <strong>{candidate_name}</strong> for a position in the {department} department.</p>
-        <p>Please use the secure link below to access the candidate's details. This link is valid for 10 days.</p>
-        <p><a href="{review_link}">View Candidate Profile</a></p>
-    </body></html>
+        <p>Please use the secure link below to access the candidate's details. This link is valid for 10 days and can only be used once.</p>
+        <p style="margin: 25px 0;">
+            <a href="{review_link}" style="background-color: #264143; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Candidate Profile</a>
+        </p>
+        <p>If you did not expect this, please disregard this email.</p>
+        <p>Thank you,<br>HR Department</p>
+    </body>
+    </html>
     """
-    send_email(to_email, subject, plain_body, html_body, cc_emails)
+    send_email(to_email, subject, plain_body, html_body, final_cc_list)
 
     
 def send_verification_code_email(to_email: str, code: str):

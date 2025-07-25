@@ -154,3 +154,12 @@ class TokenData(BaseModel):
 
 class HRUserCreateWithCode(HRUserCreate):
     code: str
+
+class Employee(BaseModel):
+    employee_id: int
+    name: str
+    email: EmailStr
+    department: str
+
+    class Config:
+        from_attributes = True

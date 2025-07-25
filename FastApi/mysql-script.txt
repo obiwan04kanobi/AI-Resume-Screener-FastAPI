@@ -75,3 +75,22 @@ USE resume_portal;
 ALTER TABLE jobs
 ADD COLUMN band VARCHAR(255),
 ADD COLUMN preferredIndustry VARCHAR(255);
+
+-- Drop the table if it already exists (optional, for easy re-creation)
+DROP TABLE IF EXISTS employees;
+
+-- Create the new employees table
+CREATE TABLE employees (
+    employee_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    department VARCHAR(100) NOT NULL
+);
+
+-- Insert the initial employee data into the new table
+INSERT INTO employees (name, email, department) VALUES
+('Mayank Pant', 'obiwan04kanobi@gmail.com', 'Engineering'),
+('Deepanshu Sharma', 'deepanshuvats2020@gmail.com', 'Sales'),
+('Priya Singh', 'priya.s@example.com', 'Engineering'),
+('Amit Kumar', 'amit.k@example.com', 'Sales'),
+('Sunita Williams', 'sunita.w@example.com', 'HR');

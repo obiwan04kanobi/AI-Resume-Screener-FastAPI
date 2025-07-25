@@ -191,31 +191,47 @@ const JobListing = () => {
                             {/* Job Overview */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-2 text-green-600 font-semibold text-xl">
-                                        {formatSalary(job.minSalary, job.maxSalary, job.currency)}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                        <Users className="w-5 h-5" />
-                                        <span>{job.positionsAvailable} position{job.positionsAvailable > 1 ? 's' : ''} available</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                        <Briefcase className="w-5 h-5" />
-                                        <span>{job.workType} • {job.workMode}</span>
-                                    </div>
+                                    {job.minSalary > 0 && job.maxSalary > 0 && (
+                                        <div className="flex items-center gap-2 text-green-600 font-semibold text-xl">
+                                            {formatSalary(job.minSalary, job.maxSalary, job.currency)}
+                                        </div>
+                                    )}
+                                    {job.positionsAvailable > 0 && (
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <Users className="w-5 h-5" />
+                                            <span>{job.positionsAvailable} position{job.positionsAvailable > 1 ? 's' : ''} available</span>
+                                        </div>
+                                    )}
+                                    {job.workType && job.workType !== 'N/A' && (
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <Briefcase className="w-5 h-5" />
+                                            <span>{job.workType} • {job.workMode}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                        <User className="w-5 h-5" />
-                                        <span>Experience: {job.minExperience}-{job.maxExperience} years</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                        <Award className="w-5 h-5" />
-                                        <span>Level: {job.experienceLevel}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                        <Calendar className="w-5 h-5" />
-                                        <span>Deadline: {new Date(job.applicationDeadline).toLocaleDateString()}</span>
-                                    </div>
+                                    {(job.minExperience > 0 || job.maxExperience > 0) && (
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <User className="w-5 h-5" />
+                                            <span>
+                                                Experience: {job.maxExperience > 0 && job.maxExperience > job.minExperience
+                                                    ? `${job.minExperience}-${job.maxExperience} years`
+                                                    : `${job.minExperience}+ years`}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {job.experienceLevel && job.experienceLevel !== 'N/A' && (
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <Award className="w-5 h-5" />
+                                            <span>Level: {job.experienceLevel}</span>
+                                        </div>
+                                    )}
+                                    {job.applicationDeadline && (
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <Calendar className="w-5 h-5" />
+                                            <span>Deadline: {new Date(job.applicationDeadline).toLocaleDateString()}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -228,27 +244,6 @@ const JobListing = () => {
                                 <p className="text-gray-700 leading-relaxed whitespace-pre-line">{job.jobDescription}</p>
                             </div>
 
-                            {/* Skills Required */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                    <Target className="w-5 h-5" />
-                                    Skills Required
-                                </h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {Array.isArray(job.skills) && job.skills.length > 0 ? (
-                                        job.skills.map((skill, index) => (
-                                            <span
-                                                key={index}
-                                                className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
-                                            >
-                                                {skill}
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <span className="text-gray-400 italic">Skills not specified</span>
-                                    )}
-                                </div>
-                            </div>
 
                             {/* Job Responsibilities */}
                             {job.responsibilities && (
@@ -267,6 +262,49 @@ const JobListing = () => {
                                             ))
                                         ) : (
                                             <span className="text-gray-400 italic">Responsibilities not specified</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {job.requirements && (
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                        <CheckCircle className="w-5 h-5" />
+                                        Skill Set Requirement
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {Array.isArray(job.requirements) ? (
+                                            job.requirements.map((requirement, index) => (
+                                                <div key={index} className="flex items-start gap-2">
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span className="text-gray-700">{requirement}</span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <span className="text-gray-400 italic">Skill Set Requirements not specified</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Preferred Candidate */}
+                            {job.skills && (
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                        <CheckCircle className="w-5 h-5" />
+                                        Preferred Candidate
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {Array.isArray(job.skills) ? (
+                                            job.skills.map((skill, index) => (
+                                                <div key={index} className="flex items-start gap-2">
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                                    <span className="text-gray-700">{skill}</span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <span className="text-gray-400 italic">Skills not specified</span>
                                         )}
                                     </div>
                                 </div>
@@ -474,9 +512,11 @@ const JobListing = () => {
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
-                                            <div className="flex items-center gap-1 text-green-600 font-semibold">
-                                                {formatSalary(job.minSalary, job.maxSalary, job.currency)}
-                                            </div>
+                                            {job.minSalary > 0 && job.maxSalary > 0 && (
+                                                <div className="flex items-center gap-1 text-green-600 font-semibold">
+                                                    {formatSalary(job.minSalary, job.maxSalary, job.currency)}
+                                                </div>
+                                            )}
                                             <div className="flex items-center gap-1 text-sm text-gray-500">
                                                 <Users className="w-4 h-4" />
                                                 {job.positionsAvailable} position{job.positionsAvailable > 1 ? 's' : ''}
@@ -514,17 +554,25 @@ const JobListing = () => {
 
                                     {/* Job Details */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
-                                        <div>
-                                            <span className="font-medium text-gray-700">Experience: </span>
-                                            <span className="text-gray-600">{job.minExperience}-{job.maxExperience} years</span>
-                                        </div>
-                                        <div>
-                                            <span className="font-medium text-gray-700">Deadline: </span>
-                                            <span className="text-gray-600 flex items-center gap-1">
-                                                <Calendar className="w-4 h-4" />
-                                                {new Date(job.applicationDeadline).toLocaleDateString()}
-                                            </span>
-                                        </div>
+                                        {(job.minExperience > 0 || job.maxExperience > 0) && (
+                                            <div>
+                                                <span className="font-medium text-gray-700">Experience: </span>
+                                                <span className="text-gray-600">
+                                                    {job.maxExperience > 0 && job.maxExperience > job.minExperience
+                                                        ? `${job.minExperience}-${job.maxExperience} years`
+                                                        : `${job.minExperience}+ years`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {job.applicationDeadline && (
+                                            <div>
+                                                <span className="font-medium text-gray-700">Deadline: </span>
+                                                <span className="text-gray-600 flex items-center gap-1">
+                                                    <Calendar className="w-4 h-4" />
+                                                    {new Date(job.applicationDeadline).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Action Buttons */}

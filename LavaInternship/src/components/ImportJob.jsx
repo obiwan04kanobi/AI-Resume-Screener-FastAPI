@@ -97,6 +97,7 @@ const ImportJob = () => {
                 responsibilities: data.responsibilities ? data.responsibilities.split('\n').filter(Boolean) : [],
                 qualifications: data.qualifications ? data.qualifications.split('\n').filter(Boolean) : [],
                 benefits: data.benefits ? data.benefits.split('\n').filter(Boolean) : [],
+                applicationDeadline: data.applicationDeadline || null, // Add this line
                 postedDate: new Date().toISOString(),
                 status: 'Active',
                 contactEmail: data.contactEmail || null,
@@ -145,7 +146,7 @@ const ImportJob = () => {
 
                         {!parsedData && (
                             <div>
-                                <div 
+                                <div
                                     className="mt-1 flex justify-center px-6 pt-10 pb-12 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500 transition-colors"
                                     onClick={() => fileInputRef.current.click()}
                                 >
@@ -161,11 +162,11 @@ const ImportJob = () => {
                                 {isParsing && <div className="flex justify-center mt-4"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}
                             </div>
                         )}
-                        
+
                         {parsedData && (
-                             <>
+                            <>
                                 {submitSuccess && <div className="bg-green-100 text-green-700 p-4 rounded mb-6 text-center">Job posted successfully! Redirecting...</div>}
-                                
+
                                 <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6 max-h-[70vh] overflow-y-auto pr-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
                                         {/* Job Title (Required) */}
@@ -178,8 +179,8 @@ const ImportJob = () => {
                                         {/* --- FIX: Department is now a text input (Required) --- */}
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Department *</label>
-                                            <input 
-                                                {...register('department', { required: 'Department is required' })} 
+                                            <input
+                                                {...register('department', { required: 'Department is required' })}
                                                 className={`w-full border-2 ${errors.department ? "border-red-500" : "border-gray-300"} rounded-lg p-2`}
                                                 placeholder="e.g., Sales"
                                             />
@@ -230,12 +231,12 @@ const ImportJob = () => {
                                             <label className="block font-semibold text-gray-700 mb-1">Max Experience (yrs)</label>
                                             <input type="number" {...register('maxExperience')} className="w-full border-2 border-gray-300 rounded-lg p-2" />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Application Deadline</label>
                                             <input type="date" {...register('applicationDeadline')} className="w-full border-2 border-gray-300 rounded-lg p-2" />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Currency</label>
                                             <select {...register('currency')} className="w-full border-2 border-gray-300 rounded-lg p-2">
@@ -247,7 +248,7 @@ const ImportJob = () => {
                                             <label className="block font-semibold text-gray-700 mb-1">Min Salary (Annual)</label>
                                             <input type="number" {...register('minSalary')} className="w-full border-2 border-gray-300 rounded-lg p-2" />
                                         </div>
-                                         <div>
+                                        <div>
                                             <label className="block font-semibold text-gray-700 mb-1">Max Salary (Annual)</label>
                                             <input type="number" {...register('maxSalary')} className="w-full border-2 border-gray-300 rounded-lg p-2" />
                                         </div>
@@ -256,7 +257,7 @@ const ImportJob = () => {
                                         <div><label className="block font-semibold text-gray-700 mb-1">Reporting To</label><input {...register('reportingTo')} className="w-full border-2 border-gray-300 rounded-lg p-2" /></div>
                                         <div><label className="block font-semibold text-gray-700 mb-1">Positions Available</label><input type="number" {...register('positionsAvailable')} className="w-full border-2 border-gray-300 rounded-lg p-2" /></div>
                                     </div>
-                                    
+
                                     {/* Text Areas */}
                                     <div className="md:col-span-2"><label className="block font-semibold text-gray-700 mb-1">Job Description</label><textarea {...register('jobDescription')} rows="4" className="w-full border-2 border-gray-300 rounded-lg p-2"></textarea></div>
                                     <div className="md:col-span-2"><label className="block font-semibold text-gray-700 mb-1">Key Responsibilities (one per line)</label><textarea {...register('responsibilities')} rows="5" className="w-full border-2 border-gray-300 rounded-lg p-2"></textarea></div>
@@ -264,14 +265,14 @@ const ImportJob = () => {
                                     <div className="md:col-span-2"><label className="block font-semibold text-gray-700 mb-1">Qualifications (one per line)</label><textarea {...register('qualifications')} rows="3" className="w-full border-2 border-gray-300 rounded-lg p-2"></textarea></div>
                                     <div className="md:col-span-2"><label className="block font-semibold text-gray-700 mb-1">Required Skills (comma-separated)</label><textarea {...register('skills')} rows="3" className="w-full border-2 border-gray-300 rounded-lg p-2"></textarea></div>
                                     <div className="md:col-span-2"><label className="block font-semibold text-gray-700 mb-1">Benefits (one per line)</label><textarea {...register('benefits')} rows="3" className="w-full border-2 border-gray-300 rounded-lg p-2"></textarea></div>
-                                    
+
                                     {/* Checkboxes */}
                                     <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
                                         <div className="flex items-center"><input {...register('isUrgent')} type="checkbox" className="h-4 w-4" /><label className="ml-2">Urgent Hiring</label></div>
                                         <div className="flex items-center"><input {...register('travelRequired')} type="checkbox" className="h-4 w-4" /><label className="ml-2">Travel Required</label></div>
                                         <div className="flex items-center"><input {...register('backgroundCheckRequired')} type="checkbox" className="h-4 w-4" /><label className="ml-2">Background Check Required</label></div>
                                     </div>
-                                    
+
                                     <div className="flex justify-end space-x-4 pt-6 border-t mt-6">
                                         <button type="button" onClick={handleCancel} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100">Cancel & Upload New</button>
                                         <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-[#DE5499] text-white rounded-lg font-semibold hover:opacity-90 disabled:opacity-50">
@@ -279,7 +280,7 @@ const ImportJob = () => {
                                         </button>
                                     </div>
                                 </form>
-                             </>
+                            </>
                         )}
                     </div>
                 </div>

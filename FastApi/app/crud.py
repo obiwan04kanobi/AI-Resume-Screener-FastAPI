@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session, joinedload # <<--- 1. ADD 'joinedload' TO THIS IMPORT
 from . import models, schemas
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List
 
 # --- Job CRUD ---
@@ -118,7 +118,7 @@ def update_candidate_status(db: Session, resume_id: str, status: str):
 
 # --- Token CRUD ---
 def create_review_token(db: Session, resume_id: str, token_str: str):
-    expires_at = datetime.utcnow() + timedelta(days=10)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=10)
     db_token = models.ReviewToken(
         token=token_str,
         resume_id=resume_id,
@@ -151,7 +151,7 @@ def create_hr_user(db: Session, user: schemas.HRUserCreate):
     return db_user
 
 def create_or_update_verification_code(db: Session, email: str, code: str):
-    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
     
     db_code = db.query(models.VerificationCode).filter(models.VerificationCode.email == email).first()
     if db_code:

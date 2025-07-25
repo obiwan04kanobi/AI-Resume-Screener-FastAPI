@@ -8,7 +8,8 @@ from typing import List
 import time
 from fastapi import File, Form, UploadFile
 import os
-
+import re
+import json
 from .. import crud, schemas, models
 from ..database import get_db
 from ..services import aws_service, email_service
@@ -20,19 +21,80 @@ router = APIRouter(
     tags=["Candidates"],
 )
 
-# --- NEW: Reusable helper function to process candidate data ---
+def _load_stopwords_from_json(file_path: str = 'nltk_stopwords.json') -> set:
+    """Loads the stopwords from the specified JSON file."""
+    try:
+        with open(file_path, 'r') as f:
+            stopwords_list = json.load(f)
+        # print(f"✅ Successfully loaded {len(stopwords_list)} stopwords from {file_path}")
+        return set(stopwords_list)
+    except FileNotFoundError:
+        # print(f"⚠️ WARNING: Stopwords file not found at '{file_path}'. Skill matching may be less accurate.")
+        return set()
+    except json.JSONDecodeError:
+        # print(f"⚠️ WARNING: Could not decode JSON from '{file_path}'.")
+        return set()
+
+# Load stopwords once when the application starts
+PRELOADED_STOP_WORDS = _load_stopwords_from_json()
+
+router = APIRouter(
+    prefix="/candidates",
+    tags=["Candidates"],
+)
+
+
 def _process_candidate_profile(candidate: models.Candidate) -> schemas.FullCandidateProfile:
     """Takes a raw candidate object and enriches it with calculated fields."""
     profile = schemas.FullCandidateProfile.model_validate(candidate, from_attributes=True)
     
-    # Safely calculate skill match percentage
-    if candidate.job and candidate.job.skills and candidate.extracted_skills:
-        job_skills = set([s.lower() for s in candidate.job.skills if isinstance(s, str)])
-        resume_skills = set([s.lower() for s in candidate.extracted_skills if isinstance(s, str)])
+    if candidate.job and (candidate.job.skills or candidate.job.requirements) and candidate.extracted_skills:
         
-        matched = list(job_skills & resume_skills)
+        # --- START: MODIFIED STOP WORDS LOGIC ---
+        # 1. Start with the pre-loaded stop words from the JSON file.
+        # Use .copy() to avoid modifying the global set for this request.
+        stop_words = PRELOADED_STOP_WORDS.copy()
+        
+        # 2. Add custom, domain-specific words for better filtering.
+        custom_stop_words = {
+            'basic', 'understanding', 'knowledge', 'familiarity', 'platforms', 'systems',
+            'tools', 'principles', 'practices', 'skills', 'languages', 'and/or',
+            'e.g', 'etc', 'such', 'as', 'experience', 'using', 'services',
+            'containerization', 'orchestration', 'version', 'control', 'ability', 'strong'
+        }
+        stop_words.update(custom_stop_words)
+        # --- END: MODIFIED STOP WORDS LOGIC ---
+
+        # 3. Combine phrases from both 'skills' and 'requirements' fields of the job.
+        all_job_skill_phrases = (candidate.job.skills or []) + (candidate.job.requirements or [])
+
+        # 4. Create a clean set of required skills by tokenizing and filtering stop words.
+        job_skills_set = set()
+        for skill_phrase in all_job_skill_phrases:
+            if isinstance(skill_phrase, str):
+                words = re.split(r'\W+', skill_phrase)
+                for word in words:
+                    cleaned_word = word.lower().strip()
+                    if cleaned_word and cleaned_word not in stop_words:
+                        job_skills_set.add(cleaned_word)
+        
+        # 5. Process candidate's skills into individual words.
+        resume_skill_words = set()
+        for skill_phrase in candidate.extracted_skills:
+            if isinstance(skill_phrase, str):
+                words = re.split(r'\W+', skill_phrase)
+                for word in words:
+                    cleaned_word = word.lower().strip()
+                    if cleaned_word:
+                        resume_skill_words.add(cleaned_word)
+        
+        # 6. Find the intersection between the two sets.
+        matched = sorted(list(job_skills_set & resume_skill_words))
+        
         profile.matched_skills = matched
-        profile.match_percentage = (len(matched) / len(job_skills)) * 100 if job_skills else 0
+        profile.match_percentage = round((len(matched) / len(job_skills_set)) * 100) if job_skills_set else 0
+
+    # ... (rest of the function is unchanged) ...
     
     # Safely group entities
     if candidate.extracted_entities:
@@ -47,8 +109,6 @@ def _process_candidate_profile(candidate: models.Candidate) -> schemas.FullCandi
         profile.department = candidate.job.department
         
     return profile
-# --- End of helper function ---
-
 
 def process_resume_in_background(resume_id: str, file_path: str):
     db: Session = next(get_db())

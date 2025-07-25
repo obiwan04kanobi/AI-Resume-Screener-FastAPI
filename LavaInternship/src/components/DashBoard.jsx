@@ -564,13 +564,12 @@ const HRDashboard = () => {
               )}
 
               {/* Resume Preview */}
-              {selectedCandidate.resume_url && (
+              {selectedCandidate.s3_key && (
                 <div className="mt-6">
                   <div className="mt-4">
                     <a
-                      // Construct the correct URL using the filename (stored in s3_key)
-                      href={`http://localhost:8000/uploads/${selectedCandidate.s3_key}`}
-                      // Remove the "download" attribute
+                      // FIX: Extract only the filename to prevent duplicate "uploads/" path
+                      href={`http://localhost:8000/uploads/${selectedCandidate.s3_key.split('/').pop()}`}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"

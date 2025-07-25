@@ -1,9 +1,11 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from .database import engine
 from . import models
-from .routers import jobs, candidates, auth
+from .routers import jobs, candidates, auth, employees
+from .config import settings
 
 # Creates DB tables if they don't exist
 models.Base.metadata.create_all(bind=engine)
@@ -23,9 +25,12 @@ app.add_middleware(
     allow_headers=["content-type"],
 )
 
+app.mount("/uploads", StaticFiles(directory=settings.LOCAL_UPLOAD_DIR), name="uploads")
+
 app.include_router(auth.router)
 app.include_router(jobs.router)
 app.include_router(candidates.router)
+app.include_router(employees.router)
 
 @app.get("/", tags=["Root"])
 def read_root():

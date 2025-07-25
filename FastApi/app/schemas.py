@@ -9,6 +9,8 @@ class JobBase(BaseModel):
     location: Optional[str] = None
     workType: Optional[str] = None
     workMode: Optional[str] = None
+    band: Optional[str] = None
+    preferredIndustry: Optional[str] = None
     experienceLevel: Optional[str] = None
     minExperience: Optional[int] = None
     maxExperience: Optional[int] = None
@@ -61,6 +63,7 @@ class CandidateBase(BaseModel):
     pass12: Optional[int] = None
     grad_year: Optional[int] = None
     grad_marks: Optional[str] = None
+    s3_key: Optional[str] = None
     linkedin: Optional[str] = None
     job_id: str
     
@@ -152,3 +155,12 @@ class TokenData(BaseModel):
 
 class HRUserCreateWithCode(HRUserCreate):
     code: str
+
+class Employee(BaseModel):
+    employee_id: int
+    name: str
+    email: EmailStr
+    department: str
+
+    class Config:
+        from_attributes = True

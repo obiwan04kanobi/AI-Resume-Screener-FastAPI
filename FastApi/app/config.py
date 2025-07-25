@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = os.getenv("DATABASE_URL")
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY")
+    LOCAL_UPLOAD_DIR: str = os.getenv("LOCAL_UPLOAD_DIR")
     AWS_REGION: str = os.getenv("AWS_REGION", "ap-south-1")
     BUCKET_NAME: str = os.getenv("BUCKET_NAME")
 

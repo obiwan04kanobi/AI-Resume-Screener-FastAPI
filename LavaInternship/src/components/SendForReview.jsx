@@ -1,44 +1,110 @@
-import React, { useState } from 'react';
+// SendForReview.js
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Send } from 'lucide-react';
 
-// Replace with your actual API Gateway endpoint
+// API Endpoints
 const CREATE_REVIEW_LINK_API = 'http://localhost:8000/candidates/send-review';
+const GET_EMPLOYEES_API = 'http://localhost:8000/employees/'; // New endpoint for employees
 
 const SendForReview = ({ candidate }) => {
-    const [reviewerEmail, setReviewerEmail] = useState('');
-    const [ccEmails, setCcEmails] = useState(''); // New state for CC emails
+    // State for managing dropdowns and data
+    const [employees, setEmployees] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [filteredEmployees, setFilteredEmployees] = useState([]);
+
+    // State for selected values
+    const [selectedDepartment, setSelectedDepartment] = useState('');
+    const [primaryReviewer, setPrimaryReviewer] = useState('');
+    const [ccReviewers, setCcReviewers] = useState([]);
+
+    // State for loading and messaging
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
+    // Fetch all employees when the component mounts
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            try {
+                const response = await axios.get(GET_EMPLOYEES_API);
+                setEmployees(response.data);
+                // Get unique department names for the department dropdown
+                const uniqueDepartments = [...new Set(response.data.map(emp => emp.department))];
+                setDepartments(uniqueDepartments);
+            } catch (error) {
+                console.error("Failed to fetch employees:", error);
+                setMessage({ type: 'error', text: 'Could not load employee data.' });
+            }
+        };
+        fetchEmployees();
+    }, []);
+
+    // Handle department selection change
+    const handleDepartmentChange = (e) => {
+        const department = e.target.value;
+        setSelectedDepartment(department);
+
+        // Filter employees based on the selected department
+        const employeesInDept = employees.filter(emp => emp.department === department);
+        setFilteredEmployees(employeesInDept);
+
+        // Reset selections
+        setPrimaryReviewer('');
+        setCcReviewers([]);
+    };
+
+    // Handle checkbox change for CC reviewers
+    const handleCcChange = (event) => {
+        const { value, checked } = event.target;
+        setCcReviewers(prevCcReviewers => {
+            if (checked) {
+                // Add the email to the array
+                return [...prevCcReviewers, value];
+            } else {
+                // Remove the email from the array
+                return prevCcReviewers.filter(email => email !== value);
+            }
+        });
+    };
+
+
+    // Handle form submission
+    // In SendForReview.js
+
     const handleSendReview = async (e) => {
         e.preventDefault();
-        if (!reviewerEmail) {
-            setMessage({ type: 'error', text: 'Please enter a primary reviewer\'s email.' });
+        if (!primaryReviewer) {
+            setMessage({ type: 'error', text: 'Please select a primary reviewer.' });
             return;
         }
 
         setIsLoading(true);
         setMessage({ type: '', text: '' });
 
-        // Convert comma-separated CC string to an array of trimmed emails
-        const ccEmailsArray = ccEmails.split(',').map(email => email.trim()).filter(Boolean);
+        // const payload = {
+        //     resume_id: candidate.resume_id,
+        //     reviewer_email: primaryReviewer,
+        //     cc_emails: ccReviewers,
+        //     candidate_name: `${candidate.first_name} ${candidate.last_name}`,
+        //     department: candidate.department
+        // };
+
+        // // Use the payload for both logging and the API call
+        // console.log("DEBUG: Sending payload:", payload);
 
         try {
-            const response = await axios.post(CREATE_REVIEW_LINK_API, {
-                resume_id: candidate.resume_id,
-                reviewer_email: reviewerEmail,
-                cc_emails: ccEmailsArray, // Pass the CC emails to the API
-                candidate_name: `${candidate.first_name} ${candidate.last_name}`,
-                department: candidate.department
-            });
+            const response = await axios.post(CREATE_REVIEW_LINK_API, payload);
 
             setMessage({ type: 'success', text: response.data.message || 'Review link sent successfully!' });
-            setReviewerEmail('');
-            setCcEmails(''); // Clear CC field on success
+            // Reset form fields
+            setSelectedDepartment('');
+            setPrimaryReviewer('');
+            setCcReviewers([]);
+            setFilteredEmployees([]);
+
         } catch (error) {
             console.error("Error sending review link:", error);
-            setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to send review link.' });
+            setMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to send review link.' });
         } finally {
             setIsLoading(false);
         }
@@ -48,25 +114,63 @@ const SendForReview = ({ candidate }) => {
         <div className="mt-6 p-4 border-t border-gray-200">
             <h3 className="font-semibold text-[#264143] mb-3">Send for Departmental Review</h3>
             <form onSubmit={handleSendReview} className="space-y-3">
-                <input
-                    type="email"
-                    value={reviewerEmail}
-                    onChange={(e) => setReviewerEmail(e.target.value)}
-                    placeholder="Primary reviewer's email (To)"
+                {/* Department Dropdown */}
+                <select
+                    value={selectedDepartment}
+                    onChange={handleDepartmentChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#264143] transition"
                     required
-                />
-                {/* New CC input field */}
-                <input
-                    type="text"
-                    value={ccEmails}
-                    onChange={(e) => setCcEmails(e.target.value)}
-                    placeholder="Other reviewers' emails (CC), separated by commas"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#264143] transition"
-                />
+                >
+                    <option value="">Select a Department</option>
+                    {departments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                </select>
+
+                {/* Primary Reviewer Dropdown */}
+                <select
+                    value={primaryReviewer}
+                    onChange={(e) => setPrimaryReviewer(e.target.value)}
+                    disabled={!selectedDepartment}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#264143] transition disabled:bg-gray-100"
+                    required
+                >
+                    <option value="">Select a Primary Reviewer (To)</option>
+                    {filteredEmployees.map(emp => (
+                        <option key={emp.employee_id} value={emp.email}>{emp.name} ({emp.email})</option>
+                    ))}
+                </select>
+
+                {/* CC Reviewers Checkbox List */}
+                <div className="border border-gray-300 rounded-md p-3 space-y-2 max-h-36 overflow-y-auto">
+                    <label className="block text-sm font-medium text-gray-600 mb-2">CC Reviewers (optional)</label>
+                    {filteredEmployees.length > 1 ? (
+                        filteredEmployees
+                            .filter(emp => emp.email !== primaryReviewer) // Exclude the primary reviewer from CC list
+                            .map(emp => (
+                                <div key={emp.employee_id} className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id={`cc-${emp.employee_id}`}
+                                        value={emp.email}
+                                        checked={ccReviewers.includes(emp.email)}
+                                        onChange={handleCcChange}
+                                        disabled={!selectedDepartment}
+                                        className="h-4 w-4 rounded border-gray-300 text-[#264143] focus:ring-[#264143]"
+                                    />
+                                    <label htmlFor={`cc-${emp.employee_id}`} className="ml-3 text-sm text-gray-700">
+                                        {emp.name}
+                                    </label>
+                                </div>
+                            ))
+                    ) : (
+                        <p className="text-sm text-gray-500 italic">No other reviewers in this department.</p>
+                    )}
+                </div>
+
                 <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || !primaryReviewer}
                     className="w-full sm:w-auto bg-[#264143] text-white px-4 py-2 rounded-md hover:bg-[#1a2d2f] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                     <Send size={16} />

@@ -6,6 +6,8 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from typing import List
 import time
+from fastapi import File, Form, UploadFile
+import os
 
 from .. import crud, schemas, models
 from ..database import get_db
@@ -48,14 +50,11 @@ def _process_candidate_profile(candidate: models.Candidate) -> schemas.FullCandi
 # --- End of helper function ---
 
 
-def process_resume_in_background(resume_id: str, s3_key: str):
+def process_resume_in_background(resume_id: str, file_path: str):
     db: Session = next(get_db())
     try:
-        print("BACKGROUND: Waiting 5 seconds for S3 upload to complete...")
-        time.sleep(5) 
-        
-        print(f"BACKGROUND: Analyzing resume for {resume_id}")
-        text, entities, skills = aws_service.analyze_resume_from_s3(s3_key)
+        print(f"BACKGROUND: Analyzing resume from local file: {file_path}")
+        text, entities, skills = aws_service.analyze_resume_from_local_file(file_path)
         crud.update_candidate_analysis(
             db=db, resume_id=resume_id, text=text, entities=entities, skills=skills, status="Under Review"
         )
@@ -66,22 +65,65 @@ def process_resume_in_background(resume_id: str, s3_key: str):
     finally:
         db.close()
 
-@router.post("/apply", response_model=schemas.ResumeUploadResponse)
+@router.post("/apply")
 def apply_for_job(
-    payload: schemas.ResumeUploadRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    # --- Form fields ---
+    name: str = Form(...),
+    email: str = Form(...),
+    contact: str = Form(...),
+    gender: str = Form(...),
+    workPref: str = Form(...),
+    address: str = Form(...),
+    experience: str = Form(...),
+    age: int = Form(...),
+    jobId: str = Form(...),
+    jobTitle: str = Form(...),
+    # --- Optional fields ---
+    marks12: str = Form(None),
+    pass12: int = Form(None),
+    gradYear: int = Form(None),
+    gradMarks: str = Form(None),
+    linkedIn: str = Form(None),
+    # --- File upload ---
+    resume: UploadFile = File(...)
 ):
-    put_url, get_url, s3_key = aws_service.generate_presigned_urls(payload.resume)
+    # 1. Save the uploaded file locally
+    upload_dir = settings.LOCAL_UPLOAD_DIR
+    os.makedirs(upload_dir, exist_ok=True) # Ensure the directory exists
     
-    candidate = crud.create_candidate(db, payload, s3_key, get_url)
+    # Create a unique filename to prevent overwrites
+    file_extension = os.path.splitext(resume.filename)[1]
+    unique_filename = f"{uuid.uuid4()}{file_extension}"
+    file_path = os.path.join(upload_dir, unique_filename)
+
+    with open(file_path, "wb") as buffer:
+        buffer.write(resume.file.read())
+
+    # 2. Create a payload object to pass to the CRUD function
+    payload_data = {
+        "name": name, "email": email, "contact": contact, "gender": gender,
+        "workPref": workPref, "address": address, "experience": experience,
+        "age": age, "jobId": jobId, "jobTitle": jobTitle,
+        "marks12": marks12, "pass12": pass12, "gradYear": gradYear,
+        "gradMarks": gradMarks, "linkedIn": linkedIn,
+        "resume": unique_filename,
+        "submittedAt": datetime.now(timezone.utc)
+    }
+    payload = schemas.ResumeUploadRequest(**payload_data)
+
+    # 3. Create the candidate record in the database
+    # We store the unique filename in `s3_key` and the full local path in `resume_url`
+    candidate = crud.create_candidate(db, payload, unique_filename, file_path)
     
-    background_tasks.add_task(process_resume_in_background, candidate.resume_id, s3_key)
+    # 4. Schedule the background task with the local file path
+    background_tasks.add_task(process_resume_in_background, candidate.resume_id, file_path)
     
-    first_name, *_ = payload.name.split()
-    email_service.send_application_confirmation(payload.email, first_name, payload.jobTitle)
+    # 5. Send confirmation email
+    email_service.send_application_confirmation(payload.email, payload.name, payload.jobTitle)
     
-    return {"upload_url": put_url, "s3_key": s3_key, "resume_url": get_url}
+    return {"message": "Application submitted successfully", "resume_id": candidate.resume_id}
 
 @router.get("/", response_model=List[schemas.FullCandidateProfile])
 def get_all_candidate_profiles(db: Session = Depends(get_db)):

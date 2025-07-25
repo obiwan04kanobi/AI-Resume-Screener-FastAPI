@@ -568,13 +568,14 @@ const HRDashboard = () => {
                 <div className="mt-6">
                   <div className="mt-4">
                     <a
-                      href={selectedCandidate.resume_url}
-                      download
+                      // Construct the correct URL using the filename (stored in s3_key)
+                      href={`http://localhost:8000/uploads/${selectedCandidate.s3_key}`}
+                      // Remove the "download" attribute
                       target="_blank"
                       rel="noreferrer"
                       className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
                     >
-                      ⬇️ Preview Resume (PDF)
+                      📄 Preview Resume
                     </a>
                   </div>
                 </div>

@@ -63,6 +63,7 @@ class CandidateBase(BaseModel):
     pass12: Optional[int] = None
     grad_year: Optional[int] = None
     grad_marks: Optional[str] = None
+    s3_key: Optional[str] = None
     linkedin: Optional[str] = None
     job_id: str
     

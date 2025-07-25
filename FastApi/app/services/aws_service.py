@@ -31,52 +31,52 @@ comprehend_client = boto3.client(
 # --- END OF INITIALIZATION ---
 
 
-def generate_presigned_urls(resume_filename: str):
-    s3_key = f"uploads/{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{resume_filename}"
+# def generate_presigned_urls(resume_filename: str):
+#     s3_key = f"uploads/{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{resume_filename}"
     
-    put_url = s3_client.generate_presigned_url(
-        'put_object',
-        Params={"Bucket": settings.BUCKET_NAME, "Key": s3_key},
-        ExpiresIn=3600
-    )
+#     put_url = s3_client.generate_presigned_url(
+#         'put_object',
+#         Params={"Bucket": settings.BUCKET_NAME, "Key": s3_key},
+#         ExpiresIn=3600
+#     )
     
-    get_url = s3_client.generate_presigned_url(
-        'get_object',
-        Params={"Bucket": settings.BUCKET_NAME, "Key": s3_key},
-        ExpiresIn=7 * 24 * 3600
-    )
-    return put_url, get_url, s3_key
+#     get_url = s3_client.generate_presigned_url(
+#         'get_object',
+#         Params={"Bucket": settings.BUCKET_NAME, "Key": s3_key},
+#         ExpiresIn=7 * 24 * 3600
+#     )
+#     return put_url, get_url, s3_key
 
-def analyze_resume_from_s3(s3_key: str):
-    try:
-        response = textract_client.detect_document_text(
-            Document={'S3Object': {'Bucket': settings.BUCKET_NAME, 'Name': s3_key}}
-        )
-        text = ' '.join([item["Text"] for item in response["Blocks"] if item["BlockType"] == "LINE"])
+# def analyze_resume_from_s3(s3_key: str):
+#     try:
+#         response = textract_client.detect_document_text(
+#             Document={'S3Object': {'Bucket': settings.BUCKET_NAME, 'Name': s3_key}}
+#         )
+#         text = ' '.join([item["Text"] for item in response["Blocks"] if item["BlockType"] == "LINE"])
 
-        if not text.strip():
-            return "", [], []
+#         if not text.strip():
+#             return "", [], []
 
-        entities_response = comprehend_client.detect_entities(Text=text, LanguageCode='en')
-        phrases_response = comprehend_client.detect_key_phrases(Text=text, LanguageCode='en')
+#         entities_response = comprehend_client.detect_entities(Text=text, LanguageCode='en')
+#         phrases_response = comprehend_client.detect_key_phrases(Text=text, LanguageCode='en')
 
-        entities = [
-            {"Text": e["Text"], "Type": e["Type"]} 
-            for e in entities_response.get('Entities', []) 
-            if e["Type"] in ["PERSON", "ORGANIZATION", "DATE", "LOCATION"]
-        ]
+#         entities = [
+#             {"Text": e["Text"], "Type": e["Type"]} 
+#             for e in entities_response.get('Entities', []) 
+#             if e["Type"] in ["PERSON", "ORGANIZATION", "DATE", "LOCATION"]
+#         ]
         
-        skills = []
-        for phrase in phrases_response.get('KeyPhrases', []):
-            text = phrase.get("Text", "").strip()
-            word_count = len(text.split())
-            if 2 <= word_count <= 5 and '@' not in text and '|' not in text and not text.isnumeric():
-                skills.append(text)
+#         skills = []
+#         for phrase in phrases_response.get('KeyPhrases', []):
+#             text = phrase.get("Text", "").strip()
+#             word_count = len(text.split())
+#             if 2 <= word_count <= 5 and '@' not in text and '|' not in text and not text.isnumeric():
+#                 skills.append(text)
         
-        return text, entities, skills
-    except Exception as e:
-        print(f"Error during resume analysis for key {s3_key}: {e}")
-        raise
+#         return text, entities, skills
+#     except Exception as e:
+#         print(f"Error during resume analysis for key {s3_key}: {e}")
+#         raise
 
 def analyze_job_description_pdf(file_bytes: bytes) -> dict:
     """
@@ -196,3 +196,41 @@ def get_text(result, blocks_map):
                     if word['BlockType'] == 'WORD':
                         text += word['Text'] + ' '
     return text.strip()
+
+
+def analyze_resume_from_local_file(file_path: str):
+    """Reads a local file and sends its bytes to Textract and Comprehend for analysis."""
+    try:
+        with open(file_path, "rb") as document_file:
+            file_bytes = document_file.read()
+
+        # Send bytes to Textract
+        response = textract_client.detect_document_text(
+            Document={'Bytes': file_bytes}
+        )
+        text = ' '.join([item["Text"] for item in response["Blocks"] if item["BlockType"] == "LINE"])
+
+        if not text.strip():
+            return "", [], []
+
+        # The rest of the analysis logic is the same
+        entities_response = comprehend_client.detect_entities(Text=text, LanguageCode='en')
+        phrases_response = comprehend_client.detect_key_phrases(Text=text, LanguageCode='en')
+
+        entities = [
+            {"Text": e["Text"], "Type": e["Type"]} 
+            for e in entities_response.get('Entities', []) 
+            if e["Type"] in ["PERSON", "ORGANIZATION", "DATE", "LOCATION"]
+        ]
+        
+        skills = []
+        for phrase in phrases_response.get('KeyPhrases', []):
+            text = phrase.get("Text", "").strip()
+            word_count = len(text.split())
+            if 2 <= word_count <= 5 and '@' not in text and '|' not in text and not text.isnumeric():
+                skills.append(text)
+        
+        return text, entities, skills
+    except Exception as e:
+        print(f"Error during local resume analysis for file {file_path}: {e}")
+        raise

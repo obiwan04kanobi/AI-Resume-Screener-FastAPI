@@ -4,8 +4,6 @@ from sqlalchemy.orm import Session
 from typing import List, Dict
 from .. import crud, schemas, models
 from ..database import get_db
-from fastapi import File, UploadFile
-from ..services import aws_service  
 
 router = APIRouter(
     prefix="/jobs",
@@ -58,19 +56,3 @@ def get_job_details(job_id: str, db: Session = Depends(get_db)):
     if db_job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return db_job
-
-@router.post("/parse-pdf", status_code=200)
-async def parse_job_pdf(job_pdf: UploadFile = File(...)):
-    """
-    Accepts a job description PDF, analyzes it with Textract,
-    and returns the extracted data as JSON.
-    """
-    if not job_pdf.content_type == "application/pdf":
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a PDF.")
-
-    try:
-        file_bytes = await job_pdf.read()
-        parsed_data = aws_service.analyze_job_description_pdf(file_bytes)
-        return parsed_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")

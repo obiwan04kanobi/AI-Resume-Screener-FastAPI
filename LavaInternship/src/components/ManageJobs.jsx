@@ -56,12 +56,9 @@ const JobEditModal = ({ job, onClose, onSave, onDelete }) => {
                         </div>
                         <div>
                             <label className="block font-semibold text-gray-700 mb-1">Department (Cannot be changed)</label>
-                            <input
-                                {...register('department', { required: 'Department is required' })}
-                                readOnly
-                                className="w-full border-2 border-gray-300 rounded-lg p-2 bg-gray-100 cursor-not-allowed"
-                            />
-                            {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message}</p>}
+                            <select {...register('department')} disabled className={`w-full border-2 border-gray-300 rounded-lg p-2 bg-gray-100 cursor-not-allowed`}>
+                                <option value="Engineering">Engineering</option><option value="Marketing">Marketing</option><option value="Sales">Sales</option><option value="HR">Human Resources</option><option value="Finance">Finance</option>
+                            </select>
                         </div>
                         <div>
                             <label className="block font-semibold text-gray-700 mb-1">Location *</label>
@@ -106,6 +103,7 @@ const JobEditModal = ({ job, onClose, onSave, onDelete }) => {
                         <label className="block font-semibold text-gray-700 mb-1">Skills (comma-separated)*</label>
                         <textarea {...register('skills', { required: 'Skills are required' })} rows="2" className={`w-full border-2 ${errors.skills ? "border-red-500" : "border-gray-300"} rounded-lg p-2`}></textarea>
                     </div>
+                    {/* --- ADDED THIS SECTION --- */}
                     <div className="space-y-2 pt-2">
                         <div className="flex items-center">
                             <input {...register('isUrgent')} type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />

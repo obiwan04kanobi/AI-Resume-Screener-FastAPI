@@ -10,13 +10,8 @@ import ReviewerPage from './components/ReviewerPage';
 import CandidateDatabase from './components/CandidateDatabase';
 import JobPostingForm from './components/JobPosting';
 import AuthPage from './components/AuthPage';
-<<<<<<< HEAD
 // ADDED: Import the new parent component that controls the flow
 import CreateJobPage from './components/CreateJobPage'; 
-=======
-// import SmartPost from './components/SmartPost'
-import ImportJob from './components/ImportJob';
->>>>>>> e8a40493d3ed2d9a4f6da8e55ed9da6286ffa84b
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('authToken');
@@ -40,7 +35,6 @@ function App() {
         {/* --- Protected HR Routes --- */}
         <Route path="/dashboard" element={<ProtectedRoute><HRDashboard /></ProtectedRoute>} />
         <Route path="/candidate-database" element={<ProtectedRoute><CandidateDatabase /></ProtectedRoute>} />
-<<<<<<< HEAD
         
         {/* CHANGED: The "/post-job" route now renders the CreateJobPage component */}
  
@@ -48,12 +42,8 @@ function App() {
         
         {/* REMOVED: The "/smart-post" route is no longer needed as it's part of the "/post-job" flow */}
         
-=======
-        {/* <Route path="/smart-post" element={<ProtectedRoute><SmartPost/></ProtectedRoute>}/> */}
-        <Route path="/post-job" element={<ProtectedRoute><JobPostingForm /></ProtectedRoute>} />
->>>>>>> e8a40493d3ed2d9a4f6da8e55ed9da6286ffa84b
         <Route path="/manage-jobs" element={<ProtectedRoute><ManageJobs /></ProtectedRoute>} />
-        <Route path="/import-job" element={<ProtectedRoute><ImportJob /></ProtectedRoute>}/>
+
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

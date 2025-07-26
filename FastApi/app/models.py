@@ -16,8 +16,6 @@ class Job(Base):
     experienceLevel = Column(String(100))
     minExperience = Column(Integer)
     maxExperience = Column(Integer)
-    band = Column(String(255), nullable=True)
-    preferredIndustry = Column(String(255), nullable=True)
     minSalary = Column(BIGINT)
     maxSalary = Column(BIGINT)
     currency = Column(String(10))
@@ -90,10 +88,3 @@ class VerificationCode(Base):
     email = Column(String(255), primary_key=True, index=True)
     code = Column(String(6), nullable=False)
     expires_at = Column(DATETIME, nullable=False)
-
-class Employee(Base):
-    __tablename__ = "employees"
-    employee_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
-    email = Column(String(255), nullable=False, unique=True, index=True)
-    department = Column(String(100), nullable=False)

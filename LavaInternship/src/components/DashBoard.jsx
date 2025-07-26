@@ -564,17 +564,17 @@ const HRDashboard = () => {
               )}
 
               {/* Resume Preview */}
-              {selectedCandidate.s3_key && (
+              {selectedCandidate.resume_url && (
                 <div className="mt-6">
                   <div className="mt-4">
                     <a
-                      // FIX: Extract only the filename to prevent duplicate "uploads/" path
-                      href={`http://localhost:8000/uploads/${selectedCandidate.s3_key.split('/').pop()}`}
+                      href={selectedCandidate.resume_url}
+                      download
                       target="_blank"
                       rel="noreferrer"
                       className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
                     >
-                      📄 Preview Resume
+                      ⬇️ Preview Resume (PDF)
                     </a>
                   </div>
                 </div>

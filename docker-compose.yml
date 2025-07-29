@@ -11,6 +11,7 @@ services:
       - "8000:8000"
     volumes:
       - ./FastApi/app:/app/app
+      - ./uploads:/app/uploads
     # This setting allows the container to connect to your host machine
     # using the special DNS name 'host.docker.internal'.
     extra_hosts:

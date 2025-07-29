@@ -159,10 +159,15 @@ const ManageJobs = () => {
                 axios.get(GET_RESUMES_API)
             ]);
             const resumes = resumesResponse.data;
+
             const submissionCounts = resumes.reduce((acc, resume) => {
-                if (resume.jobId) acc[resume.jobId] = (acc[resume.jobId] || 0) + 1;
+                const jobId = resume.job?.job_id;
+                if (jobId) {
+                    acc[jobId] = (acc[jobId] || 0) + 1;
+                }
                 return acc;
             }, {});
+
             const rawJobData = jobsResponse.data.data;
             const flattenedJobs = Object.values(rawJobData).flat();
             const jobsWithCounts = flattenedJobs.map(job => ({ ...job, submissionCount: submissionCounts[job.job_id] || 0 }));

@@ -71,9 +71,9 @@ const CandidateDatabase = () => {
             const matchesGender = !filters.gender || c.gender === filters.gender;
             // --- FIX: Access department from the nested 'job' object ---
             const matchesJobType = !filters.jobType || c.job?.department === filters.jobType;
-            const matchesExperience = !filters.experience || c.experience === filters.experience;
+            // const matchesExperience = !filters.experience || c.experience === filters.experience;
 
-            return matchesSearch && matchesGender && matchesJobType && matchesExperience;
+            return matchesSearch && matchesGender && matchesJobType; // <-- Remove '&& matchesExperience'
         });
 
         setFilteredCandidates(processedCandidates);
@@ -148,7 +148,7 @@ const CandidateDatabase = () => {
                                         ))}
                                     </select>
                                 </div>
-                                <div>
+                                {/* <div>
                                     <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
                                     <select
                                         id="experience"
@@ -161,7 +161,7 @@ const CandidateDatabase = () => {
                                             <option key={exp} value={exp}>{exp}</option>
                                         ))}
                                     </select>
-                                </div>
+                                </div> */}
                                 <div className="lg:col-start-5">
                                     <button
                                         onClick={resetFilters}
@@ -188,9 +188,9 @@ const CandidateDatabase = () => {
                                             <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Email</th>
                                             <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Phone</th>
                                             <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Job Type</th>
-                                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Experience</th>
+                                            {/* <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Experience</th> */}
                                             <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Gender</th>
-                                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Age</th>
+                                            {/* <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Age</th> */}
                                             <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                                             <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Submitted At</th>
                                         </tr>
@@ -205,9 +205,9 @@ const CandidateDatabase = () => {
                                                 {/* --- FIX: Access department from the nested job object --- */}
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.job?.department || 'N/A'}</td>
 
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.experience || 'N/A'}</td>
+                                                {/* <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.experience || 'N/A'}</td> */}
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{formatGender(candidate.gender)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.age || 'N/A'}</td>
+                                                {/* <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.age || 'N/A'}</td> */}
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{candidate.status || 'N/A'}</td>
 
                                                 {/* --- FIX: Use the correct 'submission_timestamp' field and format it --- */}

@@ -39,6 +39,28 @@ const SendForReview = ({ candidate }) => {
         fetchEmployees();
     }, []);
 
+    // Auto-select department based on the candidate's applied department
+    useEffect(() => {
+        if (candidate?.department && employees.length > 0) {
+            const candidateDept = candidate.department;
+
+            // Check if the department from the candidate exists in our list
+            if (departments.includes(candidateDept)) {
+                // Set the department state
+                setSelectedDepartment(candidateDept);
+
+                // Filter employees for that department
+                const employeesInDept = employees.filter(emp => emp.department === candidateDept);
+                setFilteredEmployees(employeesInDept);
+
+                // Reset reviewer selections to avoid inconsistencies
+                setPrimaryReviewer('');
+                setCcReviewers([]);
+            }
+        }
+    }, [candidate, employees, departments]); // Reruns when candidate or employee data changes
+
+
     // Handle department selection change
     const handleDepartmentChange = (e) => {
         const department = e.target.value;
@@ -70,6 +92,7 @@ const SendForReview = ({ candidate }) => {
 
     // Handle form submission
     // In SendForReview.js
+    // In SendForReview.js
 
     const handleSendReview = async (e) => {
         e.preventDefault();
@@ -81,22 +104,25 @@ const SendForReview = ({ candidate }) => {
         setIsLoading(true);
         setMessage({ type: '', text: '' });
 
-        // const payload = {
-        //     resume_id: candidate.resume_id,
-        //     reviewer_email: primaryReviewer,
-        //     cc_emails: ccReviewers,
-        //     candidate_name: `${candidate.first_name} ${candidate.last_name}`,
-        //     department: candidate.department
-        // };
+        // FIX: Define the payload for the API request.
+        // Use `selectedDepartment` to ensure it matches the user's final selection.
+        const payload = {
+            resume_id: candidate.resume_id,
+            reviewer_email: primaryReviewer,
+            cc_emails: ccReviewers,
+            candidate_name: `${candidate.first_name} ${candidate.last_name}`,
+            department: selectedDepartment
+        };
 
-        // // Use the payload for both logging and the API call
-        // console.log("DEBUG: Sending payload:", payload);
+        // For debugging purposes
+        console.log("DEBUG: Sending payload:", payload);
 
         try {
             const response = await axios.post(CREATE_REVIEW_LINK_API, payload);
 
             setMessage({ type: 'success', text: response.data.message || 'Review link sent successfully!' });
-            // Reset form fields
+
+            // Reset form fields after successful submission
             setSelectedDepartment('');
             setPrimaryReviewer('');
             setCcReviewers([]);

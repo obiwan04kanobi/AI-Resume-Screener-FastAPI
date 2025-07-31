@@ -55,18 +55,11 @@ class CandidateBase(BaseModel):
     last_name: Optional[str] = None
     phone: Optional[str] = None
     gender: Optional[str] = None
-    age: Optional[int] = None
-    work_pref: Optional[str] = None
-    address: Optional[str] = None
-    experience: Optional[str] = None
-    marks12: Optional[str] = None
-    pass12: Optional[int] = None
-    grad_year: Optional[int] = None
-    grad_marks: Optional[str] = None
+    current_ctc: Optional[str] = None     # <--- ADDED
+    current_company: Optional[str] = None # <--- ADDED
     s3_key: Optional[str] = None
-    linkedin: Optional[str] = None
     job_id: str
-    
+
 class CandidateCreate(CandidateBase):
     filename: str
 
@@ -90,21 +83,14 @@ class ResumeUploadRequest(BaseModel):
     name: str
     email: EmailStr
     contact: str
-    gender: str
-    workPref: str
-    address: str
+    currentCtc: str
+    currentCompany: str
+    gender: Optional[str] = None
     resume: str # Filename
-    experience: str
-    age: int
-    marks12: Optional[str] = None
-    linkedIn: Optional[str] = None
-    pass12: Optional[int] = None
-    gradYear: Optional[int] = None
-    gradMarks: Optional[str] = None
     jobId: str
     jobTitle: str
     submittedAt: datetime = Field(default_factory=datetime.utcnow)
-    
+
 class ResumeUploadResponse(BaseModel):
     upload_url: str
     s3_key: str

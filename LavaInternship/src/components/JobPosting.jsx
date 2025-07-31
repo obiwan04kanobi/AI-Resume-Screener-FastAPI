@@ -50,7 +50,7 @@ const JobPostingForm = () => {
                 reportingTo: data.reportingTo || null,
             };
 
-            await axios.post('http://127.0.0.1:8000/jobs/', processedData);
+            await axios.post('http://localhost:8000/jobs/', processedData);
 
             setSubmitSuccess(true);
             setTimeout(() => {
@@ -260,11 +260,11 @@ const JobPostingForm = () => {
 
                         {/* Application Deadline */}
                         <div>
-                            <label className="block font-semibold text-gray-700 mb-1">Application Deadline *</label>
+                            <label className="block font-semibold text-gray-700 mb-1">Application Deadline</label>
                             <input
                                 {...register('applicationDeadline', {
-                                    required: "Application deadline is required",
-                                    validate: value => new Date(value) >= new Date(new Date().toDateString()) || 'Deadline cannot be in the past'
+                                    // The validation now only runs if a value is entered.
+                                    validate: value => !value || (new Date(value) >= new Date(new Date().toDateString())) || 'Deadline cannot be in the past'
                                 })}
                                 type="date"
                                 className={`w-full border-2 ${errors.applicationDeadline ? "border-red-500" : "border-gray-300"} rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none transition-colors`}

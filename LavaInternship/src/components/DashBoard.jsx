@@ -31,6 +31,41 @@ const HRDashboard = () => {
     dateTo: ''
   });
 
+  const handlePreviewResume = async (resumeId) => {
+    // Assumes you store the user's login token in localStorage
+    const authToken = localStorage.getItem('authToken');
+
+    if (!authToken) {
+      alert("Authentication error. Please log in again.");
+      navigate('/login'); // Redirect to login if not authenticated
+      return;
+    }
+
+    try {
+      // Step 1: Request the short-lived token from the new secure endpoint
+      const response = await axios.post(
+        `http://localhost:8000/candidates/resume-token/${resumeId}`,
+        {}, // No request body needed
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      const resumeToken = response.data.access_token;
+
+      // Step 2: Construct the final URL with the new token and open in a new tab
+      const resumeUrl = `http://localhost:8000/candidates/resume/${resumeId}?token=${resumeToken}`;
+      window.open(resumeUrl, '_blank', 'noreferrer');
+
+    } catch (error) {
+      console.error("Failed to get resume preview link:", error);
+      const errorMsg = error.response?.data?.detail || "Could not generate the preview link.";
+      alert(errorMsg);
+    }
+  };
+
   const [filterOptions, setFilterOptions] = useState({
     departments: [],
     statuses: [],
@@ -492,21 +527,21 @@ const HRDashboard = () => {
               <h2 className="text-2xl font-bold text-[#264143]">{selectedCandidate.first_name} {selectedCandidate.last_name}</h2>
               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                 <p>📧 {selectedCandidate.email}</p>
-                <p>📍 {selectedCandidate.address}</p>
+                {/* <p>📍 {selectedCandidate.address}</p> */}
                 <p>📞 {selectedCandidate.phone}</p>
                 <p>🚻 {selectedCandidate.gender}</p>
                 <p>🏢 {selectedCandidate.department}</p>
-                <p>🎓 Grad: {selectedCandidate.grad_marks}% ({selectedCandidate.grad_year})</p>
+                {/* <p>🎓 Grad: {selectedCandidate.grad_marks}% ({selectedCandidate.grad_year})</p>
                 <p>🏫 12th: {selectedCandidate.marks12}% ({selectedCandidate.pass12})</p>
                 <p>💼 Prefers: {selectedCandidate.work_pref}</p>
                 <p>🧑🏻‍💻 Experience: {selectedCandidate.experience}</p>
                 {selectedCandidate.linkedin && (
                   <p>🔗 <a href={selectedCandidate.linkedin} target="_blank" rel="noreferrer" className="text-blue-600 underline">LinkedIn Profile</a></p>
-                )}
+                )} */}
               </div>
 
               {/* Skills */}
-              <div>
+              {/* <div>
                 <h3 className="font-semibold text-[#264143] mb-2">Skills</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedCandidate.extracted_skills?.map((extracted_skills, idx) => (
@@ -515,10 +550,10 @@ const HRDashboard = () => {
                     </span>
                   ))}
                 </div>
-              </div>
+              </div> */}
 
               {/* Organizations */}
-              <div>
+              {/* <div>
                 <h3 className="font-semibold text-[#264143] mb-2">Organizations</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedCandidate.entities?.ORGANIZATION?.map((org, idx) => (
@@ -527,7 +562,7 @@ const HRDashboard = () => {
                     </span>
                   ))}
                 </div>
-              </div>
+              </div> */}
 
               {/* START: MODIFIED/ADDED EXPERIENCE DISPLAY */}
               {/* Experience */}
@@ -544,7 +579,7 @@ const HRDashboard = () => {
               {/* END: MODIFIED/ADDED EXPERIENCE DISPLAY */}
 
               {/* Skill Match */}
-              {selectedCandidate.matched_skills?.length > 0 && (
+              {/* {selectedCandidate.matched_skills?.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold text-[#264143] mb-2">Skill Match</h3>
                   <p className="text-sm text-gray-600 mb-2">
@@ -561,21 +596,18 @@ const HRDashboard = () => {
                     ))}
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* Resume Preview */}
-              {selectedCandidate.s3_key && (
+              {selectedCandidate.resume_url && (
                 <div className="mt-6">
                   <div className="mt-4">
-                    <a
-                      // FIX: Extract only the filename to prevent duplicate "uploads/" path
-                      href={`http://localhost:8000/uploads/${selectedCandidate.s3_key.split('/').pop()}`}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      onClick={() => handlePreviewResume(selectedCandidate.resume_id)}
                       className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
                     >
                       📄 Preview Resume
-                    </a>
+                    </button>
                   </div>
                 </div>
               )}

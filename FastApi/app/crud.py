@@ -62,7 +62,7 @@ def get_candidate(db: Session, resume_id: str):
     return db.query(models.Candidate).filter(models.Candidate.resume_id == resume_id).first()
 
 def get_all_candidates(db: Session):
-    # 2. CORRECT THE LINE BELOW (remove 'db.' before 'joinedload')
+    # FIX: Use joinedload to efficiently fetch related job data and prevent N+1 queries.
     return db.query(models.Candidate).options(joinedload(models.Candidate.job)).all()
 
 def create_candidate(db: Session, data: schemas.ResumeUploadRequest, s3_key: str, resume_url: str):
@@ -76,16 +76,9 @@ def create_candidate(db: Session, data: schemas.ResumeUploadRequest, s3_key: str
         last_name=last_name,
         email=data.email,
         phone=data.contact,
+        current_ctc=data.currentCtc,
+        current_company=data.currentCompany,
         gender=data.gender,
-        work_pref=data.workPref,
-        address=data.address,
-        experience=data.experience,
-        age=data.age,
-        marks12=data.marks12,
-        linkedin=data.linkedIn,
-        pass12=data.pass12,
-        grad_year=data.gradYear,
-        grad_marks=data.gradMarks,
         job_id=data.jobId,
         submission_timestamp=data.submittedAt,
         s3_key=s3_key,

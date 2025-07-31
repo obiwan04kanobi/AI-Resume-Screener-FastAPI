@@ -19,10 +19,10 @@ app = FastAPI(
 # CORS configuration to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Update with your frontend URL
+    allow_origins=["*"],  # Update with your frontend URL for production
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["content-type"],
+    allow_headers=["*"], # Update in production
 )
 
 app.mount("/uploads", StaticFiles(directory=settings.LOCAL_UPLOAD_DIR), name="uploads")

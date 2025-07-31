@@ -36,7 +36,12 @@ const Navbar = ({ onHomeClick }) => {
             <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center">
-                        <h1 className="text-xl font-bold">HR Dashboard</h1>
+                        <button
+                            className="text-xl font-bold focus:outline-none"
+                            onClick={() => handleNavigation('/dashboard')}
+                        >
+                            HR Dashboard
+                        </button>
                     </div>
 
                     {/* Desktop Menu */}

@@ -11,6 +11,15 @@ const UploadIcon = () => (
     </svg>
 );
 
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+
 const ImportJob = () => {
     const [isParsing, setIsParsing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,7 +30,6 @@ const ImportJob = () => {
 
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
-
     const {
         register,
         handleSubmit,
@@ -72,37 +80,6 @@ const ImportJob = () => {
         }
     };
 
-    const handleParse = async (file) => {
-        setIsParsing(true);
-        setParseError('');
-
-        const formData = new FormData();
-        formData.append('jobPdf', file);
-
-        try {
-            // **IMPORTANT**: You need to create this backend endpoint.
-            // It should accept a PDF, process it with Textract, and return structured JSON.
-            const PARSE_API_URL = "https://YOUR-API-GATEWAY-URL/parse-job-pdf";
-            
-            const response = await axios.post(PARSE_API_URL, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            
-            // The backend should ideally return data that matches the form structure
-            // e.g., { jobTitle: "Software Engineer", skills: "React, Node.js", ... }
-            setParsedData(response.data);
-
-        } catch (error) {
-            console.error('Error parsing PDF:', error);
-            setParseError('Failed to parse PDF. Please check the file or try again.');
-            setFileName(''); // Clear filename on error
-        } finally {
-            setIsParsing(false);
-        }
-    };
-
     const onSubmit = async (data) => {
         setIsSubmitting(true);
         // This submission logic is identical to your original form
@@ -142,7 +119,7 @@ const ImportJob = () => {
             </div>
             <div className="flex-grow flex items-center justify-center pt-24 pb-12">
                 <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-4xl mx-auto">
-                    
+
                     <h1 className="text-2xl font-bold text-gray-800 text-center mb-2">Import Job from PDF</h1>
                     <p className="text-center text-gray-500 mb-8">
                         {parsedData ? "Review the parsed details below and submit." : "Upload a job description PDF to auto-fill the form."}
@@ -151,7 +128,7 @@ const ImportJob = () => {
                     {/* STAGE 1: PDF UPLOAD UI */}
                     {!parsedData && (
                         <div className="w-full">
-                            <div 
+                            <div
                                 className="mt-1 flex justify-center px-6 pt-10 pb-12 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500 transition-colors"
                                 onClick={() => fileInputRef.current.click()}
                             >
@@ -181,60 +158,76 @@ const ImportJob = () => {
                             )}
                         </div>
                     )}
-                    
+
                     {/* STAGE 2: REVIEW AND SUBMIT FORM */}
                     {parsedData && (
-                         <>
+                        <>
                             {submitSuccess && (
                                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6 text-center">
                                     Job posted successfully! Redirecting...
                                 </div>
                             )}
                             {/* Re-using your form structure */}
-                            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
+                            <form key={Date.now()} onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
                                 {/* The form fields are the same as your JobPostingForm */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                     {/* Job Title */}
-                                     <div>
-                                         <label className="block font-semibold text-gray-700 mb-1">Job Title *</label>
-                                         <input
-                                             {...register('jobTitle', { required: 'Job title is required' })}
-                                             className={`w-full border-2 ${errors.jobTitle ? "border-red-500" : "border-gray-300"} rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none transition-colors`}
-                                             placeholder="e.g., Senior Software Engineer"
-                                         />
-                                         {errors.jobTitle && <p className="text-red-500 text-xs mt-1">{errors.jobTitle.message}</p>}
-                                     </div>
+                                    {/* Job Title */}
+                                    <div>
+                                        <label className="block font-semibold text-gray-700 mb-1">Job Title *</label>
+                                        <input
+                                            {...register('jobTitle', { required: 'Job title is required' })}
+                                            className={`w-full border-2 ${errors.jobTitle ? "border-red-500" : "border-gray-300"} rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none transition-colors`}
+                                            placeholder="e.g., Senior Software Engineer"
+                                        />
+                                        {errors.jobTitle && <p className="text-red-500 text-xs mt-1">{errors.jobTitle.message}</p>}
+                                    </div>
 
-                                     {/* Department */}
-                                     <div>
-                                         <label className="block font-semibold text-gray-700 mb-1">Department *</label>
-                                         <select
-                                             {...register('department', { required: 'Department is required' })}
-                                             className={`w-full border-2 ${errors.department ? "border-red-500" : "border-gray-300"} rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none transition-colors`}
-                                         >
-                                             <option value="">Select Department</option>
-                                             <option value="Engineering">Engineering</option>
-                                             <option value="Marketing">Marketing</option>
-                                             <option value="Sales">Sales</option>
-                                             <option value="HR">Human Resources</option>
-                                         </select>
-                                         {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message}</p>}
-                                     </div>
-                                    
-                                     {/* Location */}
-                                     <div>
-                                         <label className="block font-semibold text-gray-700 mb-1">Location *</label>
-                                         <input
-                                             {...register('location', { required: 'Location is required' })}
-                                             className={`w-full border-2 ${errors.location ? "border-red-500" : "border-gray-300"} rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none transition-colors`}
-                                             placeholder="e.g., Mumbai, India"
-                                         />
-                                         {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location.message}</p>}
-                                     </div>
+                                    {/* Department */}
+                                    <div>
+                                        <label className="block font-semibold text-gray-700 mb-1">Department *</label>
+                                        <select
+                                            {...register('department', { required: 'Department is required' })}
+                                            className={`w-full border-2 ${errors.department ? "border-red-500" : "border-gray-300"} rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none transition-colors`}
+                                        >
+                                            <option value="">Select Department</option>
+                                            <option value="Engineering">Engineering</option>
+                                            <option value="Marketing">Marketing</option>
+                                            <option value="Sales">Sales</option>
+                                            <option value="HR">Human Resources</option>
+                                        </select>
+                                        {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message}</p>}
+                                    </div>
 
-                                     {/* Add other fields here... (Work Type, Experience, Salary, etc.) */}
-                                     {/* ... The rest of your form fields go here ... */}
+                                    {/* Location */}
+                                    <div>
+                                        <label className="block font-semibold text-gray-700 mb-1">Location *</label>
+                                        <input
+                                            {...register('location', { required: 'Location is required' })}
+                                            className={`w-full border-2 ${errors.location ? "border-red-500" : "border-gray-300"} rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none transition-colors`}
+                                            placeholder="e.g., Mumbai, India"
+                                        />
+                                        {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location.message}</p>}
+                                    </div>
 
+                                    {/* Application Deadline */}
+                                    <div>
+                                        <label className="block font-semibold text-gray-700 mb-1">Application Deadline</label>
+                                        <input
+                                            type="date"
+                                            min={formatDate(new Date())}
+                                            {...register('applicationDeadline', {
+                                                validate: value => {
+                                                    if (!value) return true; // Skips validation if empty
+                                                    const selectedDate = new Date(value);
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+                                                    return selectedDate >= today || "Deadline cannot be in the past.";
+                                                }
+                                            })}
+                                            className={`w-full border-2 ${errors.applicationDeadline ? "border-red-500" : "border-gray-300"} rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none transition-colors`}
+                                        />
+                                        {errors.applicationDeadline && <p className="text-red-500 text-xs mt-1">{errors.applicationDeadline.message}</p>}
+                                    </div>
 
                                     {/* Key Responsibilities */}
                                     <div className="md:col-span-2">
@@ -247,7 +240,7 @@ const ImportJob = () => {
                                         />
                                         {errors.responsibilities && <p className="text-red-500 text-xs mt-1">{errors.responsibilities.message}</p>}
                                     </div>
-                                     
+
                                     {/* Required Skills */}
                                     <div className="md:col-span-2">
                                         <label className="block font-semibold text-gray-700 mb-1">Required Skills *</label>
@@ -261,7 +254,7 @@ const ImportJob = () => {
                                     </div>
 
                                 </div>
-                                
+
                                 <div className="flex justify-end space-x-4 pt-4">
                                     <button
                                         type="button"
@@ -283,7 +276,7 @@ const ImportJob = () => {
                                     </button>
                                 </div>
                             </form>
-                         </>
+                        </>
                     )}
                 </div>
             </div>

@@ -1,25 +1,45 @@
 # app/routers/candidates.py
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, File, Form, Header, Query, UploadFile
 from sqlalchemy.orm import Session
 import uuid
 import jwt
 from datetime import datetime, timezone, timedelta
-from typing import List
-import time
-from fastapi import File, Form, UploadFile
+from typing import List, Optional
 import os
 import re
 import json
-from .. import crud, schemas, models
+import mimetypes
+from .. import crud, schemas, models, security # <-- This line was added in a previous step
 from ..database import get_db
 from ..services import aws_service, email_service
 from ..config import settings
-
+from fastapi.responses import FileResponse
 
 router = APIRouter(
     prefix="/candidates",
     tags=["Candidates"],
 )
+
+@router.post("/resume-token/{resume_id}", response_model=schemas.Token, tags=["Candidates"])
+def create_resume_access_token(
+    resume_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.HRUser = Depends(security.get_current_user) # Protect this endpoint
+):
+    """
+    Generates a short-lived (60s) token for securely viewing a specific resume.
+    Only accessible by authenticated HR users.
+    """
+    if not crud.get_candidate(db, resume_id):
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    # Create a token that expires in 60 seconds
+    expires_delta = timedelta(seconds=60)
+    token_data = {"resume_id": resume_id} # The payload identifies the resume
+    
+    access_token = security.create_access_token(data=token_data, expires_delta=expires_delta)
+    
+    return {"access_token": access_token, "token_type": "bearer"}
 
 def _load_stopwords_from_json(file_path: str = 'nltk_stopwords.json') -> set:
     """Loads the stopwords from the specified JSON file."""
@@ -38,82 +58,12 @@ def _load_stopwords_from_json(file_path: str = 'nltk_stopwords.json') -> set:
 # Load stopwords once when the application starts
 PRELOADED_STOP_WORDS = _load_stopwords_from_json()
 
-router = APIRouter(
-    prefix="/candidates",
-    tags=["Candidates"],
-)
-
-
-def _process_candidate_profile(candidate: models.Candidate) -> schemas.FullCandidateProfile:
-    """Takes a raw candidate object and enriches it with calculated fields."""
-    profile = schemas.FullCandidateProfile.model_validate(candidate, from_attributes=True)
-    
-    if candidate.job and (candidate.job.skills or candidate.job.requirements) and candidate.extracted_skills:
-        
-        # --- START: MODIFIED STOP WORDS LOGIC ---
-        # 1. Start with the pre-loaded stop words from the JSON file.
-        # Use .copy() to avoid modifying the global set for this request.
-        stop_words = PRELOADED_STOP_WORDS.copy()
-        
-        # 2. Add custom, domain-specific words for better filtering.
-        custom_stop_words = {
-            'basic', 'understanding', 'knowledge', 'familiarity', 'platforms', 'systems',
-            'tools', 'principles', 'practices', 'skills', 'languages', 'and/or',
-            'e.g', 'etc', 'such', 'as', 'experience', 'using', 'services',
-            'containerization', 'orchestration', 'version', 'control', 'ability', 'strong'
-        }
-        stop_words.update(custom_stop_words)
-        # --- END: MODIFIED STOP WORDS LOGIC ---
-
-        # 3. Combine phrases from both 'skills' and 'requirements' fields of the job.
-        all_job_skill_phrases = (candidate.job.skills or []) + (candidate.job.requirements or [])
-
-        # 4. Create a clean set of required skills by tokenizing and filtering stop words.
-        job_skills_set = set()
-        for skill_phrase in all_job_skill_phrases:
-            if isinstance(skill_phrase, str):
-                words = re.split(r'\W+', skill_phrase)
-                for word in words:
-                    cleaned_word = word.lower().strip()
-                    if cleaned_word and cleaned_word not in stop_words:
-                        job_skills_set.add(cleaned_word)
-        
-        # 5. Process candidate's skills into individual words.
-        resume_skill_words = set()
-        for skill_phrase in candidate.extracted_skills:
-            if isinstance(skill_phrase, str):
-                words = re.split(r'\W+', skill_phrase)
-                for word in words:
-                    cleaned_word = word.lower().strip()
-                    if cleaned_word:
-                        resume_skill_words.add(cleaned_word)
-        
-        # 6. Find the intersection between the two sets.
-        matched = sorted(list(job_skills_set & resume_skill_words))
-        
-        profile.matched_skills = matched
-        profile.match_percentage = round((len(matched) / len(job_skills_set)) * 100) if job_skills_set else 0
-
-    # ... (rest of the function is unchanged) ...
-    
-    # Safely group entities
-    if candidate.extracted_entities:
-        grouped = {"PERSON": [], "LOCATION": [], "ORGANIZATION": [], "DATE": []}
-        for ent in candidate.extracted_entities:
-            if isinstance(ent, dict) and ent.get("Type") in grouped and ent.get("Text") not in grouped[ent["Type"]]:
-                grouped[ent["Type"]].append(ent["Text"])
-        profile.entities = grouped
-
-    # Add top-level department for consistency
-    if candidate.job:
-        profile.department = candidate.job.department
-        
-    return profile
 
 def process_resume_in_background(resume_id: str, file_path: str):
     db: Session = next(get_db())
     try:
         print(f"BACKGROUND: Analyzing resume from local file: {file_path}")
+        # NOTE: This now returns empty lists for entities and skills
         text, entities, skills = aws_service.analyze_resume_from_local_file(file_path)
         crud.update_candidate_analysis(
             db=db, resume_id=resume_id, text=text, entities=entities, skills=skills, status="Under Review"
@@ -125,6 +75,26 @@ def process_resume_in_background(resume_id: str, file_path: str):
     finally:
         db.close()
 
+
+@router.post("/parse-autofill")
+async def parse_resume_for_autofill(resume: UploadFile = File(...)):
+    """
+    Accepts a resume file, analyzes it with Textract,
+    and returns key extracted data (name, email, contact) for form autofilling.
+    """
+    allowed_types = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+    if resume.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a PDF or DOC/DOCX file.")
+
+    try:
+        file_bytes = await resume.read()
+        parsed_data = aws_service.analyze_resume_for_autofill(file_bytes)
+        return parsed_data
+    except Exception as e:
+        print(f"Error in /parse-autofill endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process resume file.")
+
+
 @router.post("/apply")
 def apply_for_job(
     background_tasks: BackgroundTasks,
@@ -133,19 +103,11 @@ def apply_for_job(
     name: str = Form(...),
     email: str = Form(...),
     contact: str = Form(...),
-    gender: str = Form(...),
-    workPref: str = Form(...),
-    address: str = Form(...),
-    experience: str = Form(...),
-    age: int = Form(...),
+    gender: str = Form(...), 
+    currentCtc: str = Form(...),
+    currentCompany: str = Form(...),
     jobId: str = Form(...),
     jobTitle: str = Form(...),
-    # --- Optional fields ---
-    marks12: str = Form(None),
-    pass12: int = Form(None),
-    gradYear: int = Form(None),
-    gradMarks: str = Form(None),
-    linkedIn: str = Form(None),
     # --- File upload ---
     resume: UploadFile = File(...)
 ):
@@ -163,18 +125,16 @@ def apply_for_job(
 
     # 2. Create a payload object to pass to the CRUD function
     payload_data = {
-        "name": name, "email": email, "contact": contact, "gender": gender,
-        "workPref": workPref, "address": address, "experience": experience,
-        "age": age, "jobId": jobId, "jobTitle": jobTitle,
-        "marks12": marks12, "pass12": pass12, "gradYear": gradYear,
-        "gradMarks": gradMarks, "linkedIn": linkedIn,
+        "name": name, "email": email, "contact": contact,
+        "gender": gender,
+        "currentCtc": currentCtc, "currentCompany": currentCompany,
+        "jobId": jobId, "jobTitle": jobTitle,
         "resume": unique_filename,
         "submittedAt": datetime.now(timezone.utc)
     }
     payload = schemas.ResumeUploadRequest(**payload_data)
 
     # 3. Create the candidate record in the database
-    # We store the unique filename in `s3_key` and the full local path in `resume_url`
     candidate = crud.create_candidate(db, payload, unique_filename, file_path)
     
     # 4. Schedule the background task with the local file path
@@ -191,6 +151,40 @@ def get_all_candidate_profiles(db: Session = Depends(get_db)):
     # Use the helper function to process each candidate
     return [_process_candidate_profile(c) for c in candidates]
 
+# REPLACE the existing get_secure_resume function with this new, more secure version
+@router.get("/resume/{resume_id}")
+def get_secure_resume(
+    resume_id: str,
+    db: Session = Depends(get_db),
+    token: str = Query(...)  # Token is now a required query parameter
+):
+    """
+    Serves a resume file. Access is granted only via a valid JWT token
+    in the query parameter, which proves authorization.
+    """
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS256'])
+        
+        # Verify that the token was created for the specific resume being requested
+        if payload.get('resume_id') != resume_id:
+            raise HTTPException(status_code=403, detail="Token is not valid for this resume.")
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=403, detail="The preview link has expired. Please generate a new one.")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=403, detail="Invalid authentication token.")
+
+    candidate = crud.get_candidate(db, resume_id)
+    if not candidate or not candidate.resume_url or not os.path.exists(candidate.resume_url):
+        raise HTTPException(status_code=404, detail="Resume file not found.")
+
+    file_path = candidate.resume_url
+    media_type, _ = mimetypes.guess_type(file_path)
+    if media_type is None:
+        media_type = 'application/octet-stream'
+
+    return FileResponse(path=file_path, media_type=media_type)
+
 @router.patch("/status", response_model=schemas.CandidateResponse)
 def update_applicant_status(
     update_data: schemas.ApplicantStatusUpdate,
@@ -206,7 +200,7 @@ def update_applicant_status(
         updated_candidate.email, 
         updated_candidate.first_name, 
         updated_candidate.status, 
-        updated_candidate.experience
+        None
     )
     return updated_candidate
 
@@ -242,7 +236,7 @@ def validate_review_token(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="This review link is invalid or has been tampered with.")
 
     db_token = crud.get_review_token(db, token)
-    if not db_token or db_token.expires_at < datetime.utcnow():
+    if not db_token or db_token.expires_at < datetime.now(timezone.utc).replace(tzinfo=None): # Make timezone naive for comparison
         raise HTTPException(status_code=404, detail="This review link is invalid or has been revoked.")
 
     candidate = crud.get_candidate(db, resume_id)
@@ -251,3 +245,26 @@ def validate_review_token(token: str, db: Session = Depends(get_db)):
         
     # Use the helper function to process the candidate before returning
     return _process_candidate_profile(candidate)
+
+
+def _process_candidate_profile(candidate: models.Candidate) -> schemas.FullCandidateProfile:
+    """
+    Takes a raw candidate object and enriches it for the API response.
+    NOTE: Skill matching and entity grouping have been removed as per new requirements.
+    """
+    profile = schemas.FullCandidateProfile.model_validate(candidate, from_attributes=True)
+    
+    # --- REMOVED skill matching and entity grouping logic ---
+    profile.matched_skills = []
+    profile.match_percentage = 0.0
+    profile.entities = {}
+
+    # Add top-level department for consistency
+    if candidate.job:
+        profile.department = candidate.job.department
+
+    # FIX: Overwrite resume_url to point to the secure download endpoint
+    # instead of exposing the local file system path.
+    profile.resume_url = f"/candidates/resume/{candidate.resume_id}"
+        
+    return profile

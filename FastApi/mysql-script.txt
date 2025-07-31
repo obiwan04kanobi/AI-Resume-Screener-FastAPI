@@ -1,96 +1,103 @@
-CREATE DATABASE resume_portal;
+-- Create the database if it doesn't exist
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'resume_portal')
+BEGIN
+    CREATE DATABASE resume_portal;
+END
+GO
+
 USE resume_portal;
+GO
 
 -- To store job postings
-CREATE TABLE jobs (
-    job_id VARCHAR(255) PRIMARY KEY,
-    jobTitle VARCHAR(255) NOT NULL,
-    department VARCHAR(255),
-    location VARCHAR(255),
-    workType VARCHAR(50),
-    workMode VARCHAR(50),
-    experienceLevel VARCHAR(100),
+CREATE TABLE resume_jobs (
+    job_id NVARCHAR(255) PRIMARY KEY,
+    jobTitle NVARCHAR(255) NOT NULL,
+    department NVARCHAR(255),
+    location NVARCHAR(255),
+    workType NVARCHAR(50),
+    workMode NVARCHAR(50),
+    experienceLevel NVARCHAR(100),
     minExperience INT,
     maxExperience INT,
+    band NVARCHAR(255),
+    preferredIndustry NVARCHAR(255),
     minSalary BIGINT,
     maxSalary BIGINT,
-    currency VARCHAR(10),
-    jobDescription TEXT,
-    responsibilities JSON,
-    requirements JSON,
-    qualifications JSON,
-    skills JSON,
-    benefits JSON,
+    currency NVARCHAR(10),
+    jobDescription NVARCHAR(MAX),
+    responsibilities NVARCHAR(MAX) CHECK (ISJSON(responsibilities) > 0),
+    requirements NVARCHAR(MAX) CHECK (ISJSON(requirements) > 0),
+    qualifications NVARCHAR(MAX) CHECK (ISJSON(qualifications) > 0),
+    skills NVARCHAR(MAX) CHECK (ISJSON(skills) > 0),
+    benefits NVARCHAR(MAX) CHECK (ISJSON(benefits) > 0),
     applicationDeadline DATE,
     positionsAvailable INT DEFAULT 1,
-    reportingTo VARCHAR(255),
-    contactEmail VARCHAR(255),
-    isUrgent BOOLEAN DEFAULT FALSE,
-    allowRemote BOOLEAN DEFAULT FALSE,
-    travelRequired BOOLEAN DEFAULT FALSE,
-    backgroundCheckRequired BOOLEAN DEFAULT FALSE,
-    postedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) DEFAULT 'Active'
+    reportingTo NVARCHAR(255),
+    contactEmail NVARCHAR(255),
+    isUrgent BIT DEFAULT 0,
+    allowRemote BIT DEFAULT 0,
+    travelRequired BIT DEFAULT 0,
+    backgroundCheckRequired BIT DEFAULT 0,
+    postedDate DATETIME DEFAULT GETDATE(),
+    status NVARCHAR(50) DEFAULT 'Active'
 );
+GO
 
 -- To store candidate information and resume metadata
-CREATE TABLE candidates (
-    resume_id VARCHAR(36) PRIMARY KEY,
-    job_id VARCHAR(255),
-    first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    email VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
-    gender VARCHAR(20),
+CREATE TABLE resume_candidates (
+    resume_id NVARCHAR(36) PRIMARY KEY,
+    job_id NVARCHAR(255),
+    first_name NVARCHAR(255),
+    last_name NVARCHAR(255),
+    email NVARCHAR(255) NOT NULL,
+    phone NVARCHAR(20),
+    gender NVARCHAR(20),
     age INT,
-    work_pref VARCHAR(100),
-    address TEXT,
-    experience VARCHAR(100),
-    marks12 VARCHAR(50),
+    work_pref NVARCHAR(100),
+    address NVARCHAR(MAX),
+    experience NVARCHAR(100),
+    marks12 NVARCHAR(50),
     pass12 INT,
     grad_year INT,
-    grad_marks VARCHAR(50),
-    linkedin VARCHAR(255),
-    s3_key VARCHAR(255),
-    resume_url TEXT,
-    status VARCHAR(50) DEFAULT 'Uploaded',
+    grad_marks NVARCHAR(50),
+    linkedin NVARCHAR(255),
+    s3_key NVARCHAR(255),
+    resume_url NVARCHAR(MAX),
+    status NVARCHAR(50) DEFAULT 'Uploaded',
     submission_timestamp DATETIME,
-    extracted_text LONGTEXT,
-    extracted_entities JSON,
-    extracted_skills JSON,
-    FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE SET NULL
+    extracted_text NVARCHAR(MAX),
+    extracted_entities NVARCHAR(MAX) CHECK (ISJSON(extracted_entities) > 0),
+    extracted_skills NVARCHAR(MAX) CHECK (ISJSON(extracted_skills) > 0),
+    FOREIGN KEY (job_id) REFERENCES resume_jobs(job_id) ON DELETE SET NULL
 );
+GO
 
 -- To store the secure review tokens
-CREATE TABLE review_tokens (
-    token VARCHAR(512) PRIMARY KEY,
-    resume_id VARCHAR(36) NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
+CREATE TABLE resume_review_tokens (
+    token NVARCHAR(512) PRIMARY KEY,
+    resume_id NVARCHAR(36) NOT NULL,
+    status NVARCHAR(20) DEFAULT 'pending',
     expires_at DATETIME NOT NULL,
-    FOREIGN KEY (resume_id) REFERENCES candidates(resume_id) ON DELETE CASCADE
+    FOREIGN KEY (resume_id) REFERENCES resume_candidates(resume_id) ON DELETE CASCADE
 );
+GO
 
-USE resume_portal;
-
-ALTER TABLE jobs
-ADD COLUMN band VARCHAR(255),
-ADD COLUMN preferredIndustry VARCHAR(255);
-
--- Drop the table if it already exists (optional, for easy re-creation)
-DROP TABLE IF EXISTS employees;
+-- Drop the table if it already exists
+IF OBJECT_ID('dbo.resume_employees', 'U') IS NOT NULL
+    DROP TABLE dbo.employees;
+GO
 
 -- Create the new employees table
-CREATE TABLE employees (
-    employee_id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    department VARCHAR(100) NOT NULL
+CREATE TABLE resume_employees (
+    employee_id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(255) NOT NULL,
+    email NVARCHAR(255) NOT NULL UNIQUE,
+    department NVARCHAR(100) NOT NULL
 );
+GO
 
 -- Insert the initial employee data into the new table
-INSERT INTO employees (name, email, department) VALUES
+INSERT INTO resume_employees (name, email, department) VALUES
 ('Mayank Pant', 'obiwan04kanobi@gmail.com', 'Engineering'),
-('Deepanshu Sharma', 'deepanshuvats2020@gmail.com', 'Sales'),
-('Priya Singh', 'priya.s@example.com', 'Engineering'),
-('Amit Kumar', 'amit.k@example.com', 'Sales'),
-('Sunita Williams', 'sunita.w@example.com', 'HR');
+('Deepanshu Sharma', 'deepanshuvats2020@gmail.com', 'Sales');
+GO

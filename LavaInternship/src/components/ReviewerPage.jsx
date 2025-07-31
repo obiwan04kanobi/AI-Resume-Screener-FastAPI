@@ -3,6 +3,8 @@ import { useSearchParams, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, XCircle } from 'lucide-react';
 
+
+
 const VALIDATE_TOKEN_API = 'http://localhost:8000/candidates/review';
 const UPDATE_STATUS_API = 'http://localhost:8000/candidates/status';
 
@@ -14,10 +16,12 @@ const ReviewerPage = () => {
     const [actionMessage, setActionMessage] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
 
+    const token = searchParams.get('token');
+    const API_BASE_URL = 'http://localhost:8000'; // Define your API base URL
+
     useEffect(() => {
         const validateAndFetchCandidate = async () => {
-            const token = searchParams.get('token');
-
+            // You can now safely use the `token` variable from the component scope.
             if (!token) {
                 setError('No review token provided. This page cannot be accessed directly.');
                 setLoading(false);
@@ -25,6 +29,7 @@ const ReviewerPage = () => {
             }
 
             try {
+                // The token is already included in the API call, this is fine.
                 const response = await axios.get(`${VALIDATE_TOKEN_API}?token=${token}`);
                 setCandidate(response.data);
             } catch (err) {
@@ -36,7 +41,7 @@ const ReviewerPage = () => {
         };
 
         validateAndFetchCandidate();
-    }, [searchParams]);
+    }, [token]);
 
     const handleUpdateStatus = async (status) => {
         if (!candidate || isUpdating) return;
@@ -106,7 +111,7 @@ const ReviewerPage = () => {
         );
     }
     return (
-        <div className="min-h-screen bg-[#dda5a5] p-4 sm:p-6 flex items-center justify-center font-['Segoe_UI']">
+        <div className="min-h-screen p-4 sm:p-6 flex items-center justify-center font-['Segoe_UI']">
             <div className="w-full max-w-4xl">
                 {/* --- FIX: Added max-h-[90vh] and overflow-y-auto to make this card scrollable --- */}
                 <div className="bg-white border-2 border-[#264143] rounded-xl shadow-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -115,20 +120,20 @@ const ReviewerPage = () => {
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
                         <p>📧 {candidate.email}</p>
                         <p>📞 {candidate.phone}</p>
-                        <p>📍 {candidate.address}</p>
+                        {/* <p>📍 {candidate.address}</p> */}
                         <p>🚻 {candidate.gender}</p>
                         <p>🏢 {candidate.job?.department}</p>
-                        <p>💼 Experience: {candidate.experience}</p>
+                        {/* <p>💼 Experience: {candidate.experience}</p>
                         <p>🎓 Grad: {candidate.grad_marks || 'N/A'}% ({candidate.grad_year || 'N/A'})</p>
                         <p>🏫 12th: {candidate.marks12 || 'N/A'}% ({candidate.pass12 || 'N/A'})</p>
                         <p>🏠 Prefers: {candidate.work_pref}</p>
                         {candidate.linkedin && (
                             <p>🔗 <a href={candidate.linkedin} target="_blank" rel="noreferrer" className="text-blue-600 underline">LinkedIn Profile</a></p>
-                        )}
+                        )} */}
                     </div>
 
                     {/* Skills */}
-                    <div>
+                    {/* <div>
                         <h3 className="font-semibold text-[#264143] mb-2">Skills</h3>
                         <div className="flex flex-wrap gap-2">
                             {candidate.extracted_skills?.map((skill, idx) => (
@@ -137,7 +142,7 @@ const ReviewerPage = () => {
                                 </span>
                             ))}
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Organizations */}
                     {candidate.entities?.ORGANIZATION?.length > 0 && (
@@ -155,7 +160,7 @@ const ReviewerPage = () => {
 
 
                     {/* Skill Match */}
-                    {candidate.matched_skills?.length > 0 && (
+                    {/* {candidate.matched_skills?.length > 0 && (
                         <div className="mt-6">
                             <h3 className="font-semibold text-[#264143] mb-2">Skill Match with "{candidate.job?.jobTitle}"</h3>
                             <p className="text-sm text-gray-600 mb-2">
@@ -172,14 +177,15 @@ const ReviewerPage = () => {
                                 ))}
                             </div>
                         </div>
-                    )}
+                    )} */}
 
                     {/* Resume Preview */}
                     {candidate.resume_url && (
                         <div className="mt-6">
                             <div className="mt-4">
                                 <a
-                                    href={candidate.resume_url}
+                                    // FIX: Construct the full, secure URL with the API base and review token
+                                    href={`${API_BASE_URL}${candidate.resume_url}?token=${token}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"

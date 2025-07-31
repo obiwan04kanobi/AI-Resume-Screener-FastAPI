@@ -41,7 +41,7 @@ def send_application_confirmation(to_email: str, first_name: str, job_title: str
 
 # In app/services/email_service.py, replace the whole function with this:
 
-def send_status_update_email(to_email: str, first_name: str, new_status: str, experience: str):
+def send_status_update_email(to_email: str, first_name: str, new_status: str, experience: str = None):
     """Determines which status email to send and formats it correctly."""
     subject = ""
     plain_body = ""

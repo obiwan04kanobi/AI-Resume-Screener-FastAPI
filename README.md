@@ -1,105 +1,90 @@
-# AI Resume Portal
+# AI Resume Portal (FastAPI Version)
 
 ## Overview
 
-AI Resume Portal is a comprehensive web application designed to streamline the entire hiring pipeline, from job posting to final candidate review. The system leverages a powerful suite of AWS services to automate resume submission, analysis, storage, and collaborative decision-making, while also keeping past candidates engaged with new opportunities.
+AI Resume Portal is a comprehensive web application designed to streamline the entire hiring pipeline, from job posting to final candidate review. The system is built with a powerful **FastAPI backend** and leverages AWS services to automate resume submission, analysis, and storage, ensuring a smooth and efficient process for both candidates and the HR team.
 
 ## Team
 
-- [Deepanshu Sharma](https://www.linkedin.com/in/deepanshu-sharma-2078532ab/)
-- [Raj Srivastava](https://www.linkedin.com/in/raj-srivastava-a680482b4/) ([GitHub](https://github.com/Rajs1235))
-- [Mayank Pant](https://www.linkedin.com/in/mayank04pant/) ([GitHub](https://github.com/obiwan04kanobi))
-
+  - [Deepanshu Sharma](https://www.linkedin.com/in/deepanshu-sharma-2078532ab/)
+  - [Raj Srivastava](https://www.linkedin.com/in/raj-srivastava-a680482b4/) ([GitHub](https://github.com/Rajs1235))
+  - [Mayank Pant](https://www.linkedin.com/in/mayank04pant/) ([GitHub](https://github.com/obiwan04kanobi))
 
 ## Features
 
 ### Candidate Features
-- **Job Listings**: Candidates can view all active job openings with detailed descriptions and requirements.
-- **Resume Submission**:  A user-friendly form allows candidates to apply for specific roles and upload their resumes (PDF/DOC/DOCX).
-- **Instant Feedback**: Candidates receive an email confirmation upon successful submission.
-- **Automated Job Recommendations**: Candidates who have applied in the last year receive a consolidated email at 9:30 AM daily with new job postings relevant to their previously applied departments.
+
+  - **Job Listings**: Candidates can view all active job openings, grouped by department, with detailed descriptions and requirements.
+  - **Resume Submission**: A user-friendly form allows candidates to apply for specific roles and upload their resumes directly.
+  - **Instant Feedback**: Candidates receive an email confirmation upon successful submission of their application.
 
 ### HR Features
-- **Secure HR Portal**: HR professionals log in through a secure portal managed by AWS Cognito.
-- **Centralized Dashboard**: A main dashboard provides a high-level overview of application statistics, with charts filtered for the last 30 days of activity.
-- **Job Posting**: A dedicated form for HR to create and publish new job listings with detailed requirements, responsibilities, and salary information.
-- **Job Management**: An interface to view all created jobs, see submission counts, and toggle their status between 'Active' and 'Inactive', or **permanently delete** them.
-- **Comprehensive Candidate Database**: Access to a searchable and filterable database of the **entire talent pool**, including all-time data for both 'Rejected' and 'Advanced' candidates.
-- **Collaborative Departmental Review**:
-    - HR can send a candidate's profile to a department head (HOD) or other stakeholders for review.
-    - This is done via a secure, **authenticated link sent by email**, which has a **10-day time-to-live (TTL)**.
-    - The reviewer can approve or reject the candidate directly from the link, updating the status in real-time.
+
+  - **Secure HR Portal**: HR professionals sign up and log in through a secure, custom-built authentication portal.
+  - **Smart Job Posting** ✨: Instead of manually typing job details, HR can simply upload a Job Description (JD) PDF. The system uses **AWS Textract** to intelligently parse the document's forms, tables, and raw text, automatically filling out the job posting form with the correct details like job title, department, responsibilities, and qualifications.
+  - **Job Posting & Management**: A dedicated interface allows HR to create, publish, update, and manage job listings.
+  - **Centralized Candidate Database**: Access a comprehensive and filterable database of the entire talent pool. The system calculates a skill match percentage for each candidate against the job requirements.
+  - **Collaborative Departmental Review**:
+      - HR can send a candidate's profile to a department head (HOD) or other stakeholders for review.
+      - This is done via a secure, **JWT-based link sent by email**, which has a **10-day time-to-live (TTL)**.
+      - The reviewer can view the candidate's full profile directly from the link, and the system updates the candidate's status in real-time based on their feedback.
+  - **Automated Status Updates**: Candidates are automatically notified via professional HTML emails when their application status changes (e.g., "Advanced by HOD", "Rejected", "Advanced for Interview").
+
+-----
+
+## Technology Stack & Architecture
+
+The application is architected with a modern Python backend and a reactive frontend, leveraging powerful cloud services for intelligent processing.
+
+1.  **Backend (FastAPI)**:
+
+      * The core of the application is a robust API built with **FastAPI**, providing a high-performance, asynchronous backend.
+      * **SQLAlchemy ORM** is used for all database interactions, mapping Python objects to a relational database schema (`models.py`, `crud.py`).
+      * The API is organized into modular routers for clear separation of concerns: `Jobs`, `Candidates`, `Employees`, and `Authentication`.
+      * Long-running tasks, such as resume analysis, are handled in the background using FastAPI's `BackgroundTasks` to ensure the API remains responsive.
+
+2.  **Frontend**:
+
+      * A dynamic and responsive user interface built with **React** and **TailwindCSS**.
+      * Hosted and managed by AWS Amplify for CI/CD and seamless integration with the backend.
+
+3.  **Core AWS Services**:
+
+      * **Amazon S3**: Provides durable and secure storage for all uploaded resume files.
+      * **AWS Textract**: Used to analyze and extract text content from resume documents and job description PDFs.
+      * **AWS Comprehend**: Performs natural language processing on the extracted text to identify key entities (like names, locations) and skills.
+
+-----
 
 ## Security Practices
-The application is built with a strong emphasis on security, adhering to AWS best practices:
 
-- **Identity and Access Management (IAM)**: Each Lambda function is assigned a unique IAM role with permissions configured according to the principle of least privilege. For example, the `ResumeUploadFunction` only has permissions to write to S3 and DynamoDB, but cannot read or delete other resources, minimizing the potential impact of any single component being compromised.
+The application is built with a strong emphasis on modern security practices:
 
-- **Data Protection**:
-  - **Private S3 Bucket**: All candidate resumes are stored in a private S3 bucket, which is not publicly accessible.
-  - **Presigned URLs**: The application uses S3 presigned URLs to provide secure, time-limited access for both uploading and viewing resumes. This ensures that direct, unauthorized access to the files is prevented. The GET URLs for viewing resumes are valid for 15 days.
+  - **Authentication & Authorization**:
 
-- **Authentication and Authorization**: 
-  - **AWS Cognito**: The entire HR portal is protected by AWS Cognito, which manages user authentication, session handling, and authorization, ensuring only authenticated HR personnel can access sensitive candidate data and management features.
+      - A custom authentication system is implemented for the HR portal.
+      - User signup is protected with an **email verification code** system to prevent spam and verify identity.
+      - Secure endpoints are protected using **JSON Web Tokens (JWT)**, which are issued upon successful login and required for all sensitive operations.
 
-- **Secure Credentials Management**:
-  - **AWS Secrets Manager**: Highly sensitive credentials, such as the secret key for signing JWTs in the review workflow, are securely stored and retrieved at runtime using AWS Secrets Manager, preventing them from being exposed in code or environment variables.
+  - **Password Security**:
 
-- **Network Security**:
-  - **CORS**: Cross-Origin Resource Sharing (CORS) policies are configured on the S3 bucket and API Gateway to only allow requests from the authenticated frontend domain, preventing unauthorized web clients from interacting with the resources.
+      - User passwords are never stored in plaintext. They are securely hashed using the industry-standard **bcrypt** algorithm via the `passlib` library.
 
-## Cost Optimization
-The architecture is designed to be highly cost-effective by leveraging serverless technologies and best practices:
+  - **Data Protection**:
 
-- **Serverless-First Approach**: The entire backend runs on AWS Lambda, which means there are no idle servers to pay for. Code executes only when needed (e.g., when a form is submitted or an API is called), and costs are calculated based on the number of requests and execution duration in milliseconds.
+      - Resumes are stored in a secure location, and access is managed by the backend to prevent unauthorized direct access.
+      - The collaborative review feature uses short-lived, signed JWTs to provide secure, temporary access to candidate profiles for external stakeholders.
 
-- **Right-Sized Lambda Functions**: Each Lambda function is configured with a specific memory allocation tailored to its workload. For instance, simple functions that update a database item use minimal memory (e.g., 128MB), while more intensive functions like the `ResumeProcessorFunction` are allocated more 
+  - **API Security**:
 
-- **On-Demand DynamoDB**: All DynamoDB tables are configured to use On-Demand capacity mode. This is a highly cost-effective strategy for applications with unpredictable traffic patterns, as it automatically scales throughput up or down and eliminates the need to pay for provisioned capacity that might go unused.
+      - **Cross-Origin Resource Sharing (CORS)** is configured in the FastAPI application to only allow requests from the authorized frontend domain, preventing unauthorized clients from interacting with the API.
+      - Data validation is enforced at the API level using **Pydantic** models to protect against malformed data and injection attacks.
 
-- **Automated Data Lifecycle Management**:
-  - **DynamoDB TTL**: The `ReviewTokens` table uses a Time to Live (TTL) attribute. This automatically deletes expired token records from the table at no cost, preventing the table from growing indefinitely with stale data.
+  - **Secure Credentials Management**:
 
-## AWS Integration & Architecture
-The system is deployed in the **ap-south-1 (Mumbai)** region and consists of the following components: 
-1. **Frontend**:
-    - Built with React and TailwindCSS.
-    - Hosted and managed by AWS Amplify for CI/CD and seamless integration with AWS services.
-    - Provides interfaces for candidates (Job Listings, Application Form) and HR users (Dashboard, Job Management, etc.).
-    - Communicates with the backend exclusively through API Gateway.
+      - All sensitive credentials (Database URLs, AWS Keys, JWT Secrets) are managed via environment variables and loaded securely using Pydantic's `BaseSettings`, ensuring they are never hard-coded in the application.
 
-2. **Backend**:
-- **API Gateway**: Serves as the secure entry point for all frontend requests, routing them to the appropriate Lambda functions.
-- **AWS Lambda Functions**: A suite of single-purpose functions that form the core of the application logic:
-  - **Data Ingestion & Processing**:
-    - `ResumeUploadFunction`: Receives candidate data, generates a presigned URL for S3, and creates an initial record in DynamoDB.
-    - `ResumeProcessorFunction`: Triggered by S3 uploads, this function uses AWS Textract and Comprehend to analyze resumes, extract skills and entities, and updates the candidate's record in DynamoDB.
-    - `JobPostingFunction`: Creates new job listings in the database.
-  - **Data Retrieval & Management**: 
-    - `JobListingFunction`: Fetches and groups all active job postings for the candidate view.
-    - `getResumeEntities`: Powers the HR dashboard and candidate database by fetching all candidate data and enriching it with job details and skill-match percentages.
-    - `UpdateJobPostingStatus`: Handles activating, deactivating, modifying, and deleting job posts.
-    - `UpdateApplicantStatus`: Updates a candidate's status (e.g., "Advanced", "Rejected") and sends automated, context-aware email notifications.
-  - **Collaborative Workflow & Notifications**:
-    - `SendForReviewFunction`: Generates a secure, time-limited JWT, stores it in a dedicated DynamoDB table, and emails a review link to stakeholders.
-    - `ValidateReviewTokenFunction`: Verifies the JWT from the review link, checks its validity in DynamoDB, and securely serves the candidate's data.
-    - `DailyJobRecommendationsFunction`: Triggered daily by EventBridge, this function scans for new jobs and recent candidates to send consolidated recommendation emails.
-- **Amazon EventBridge**: A scheduled rule (cron job) invokes the DailyJobRecommendationsFunction every morning at 9:30 AM to automate candidate engagement.
-
-3. **Core AWS Services**:
-  - **S3 Bucket**: Provides durable, secure, and private storage for all uploaded resume files.
-  - **DynamoDB**: Three core tables power the application: a table for candidate/resume metadata, another for job postings, and a third for the temporary review tokens (with TTL enabled for automatic cleanup).
-  - **Cognito**: Manages all aspects of authentication and authorization for the secure HR Portal.
-  - **Secrets Manager**: Securely stores the JWT secret key, decoupling it from the application code.
-
-
-## AWS Backend Architecture
-
-![aws backend architecture](/screenshots/ai-resume-screener.png)
-
-## React Frontend + API's Integration
-
-![React Frontend](/screenshots/frontend-diagram.png)
+-----
 
 ## Screenshots
 
@@ -123,67 +108,97 @@ The system is deployed in the **ap-south-1 (Mumbai)** region and consists of the
 -----
 ![candidate-database](/screenshots/candidate-database.png)
 -----
+![smart-post](/screenshots/smart-post.png)
+-----
 
-## Installation
+## Local Installation & Setup
 
 ### Prerequisites
-- Node.js and npm installed.
-- AWS account with necessary permissions.
-- Amplify CLI (`npm install -g @aws-amplify/cli`)
 
-### Steps
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/obiwan04kanobi/LavaInternship.git
-   cd LavaInternship
+  * **Docker and Docker Compose**: Ensure you have both installed on your system.
+  * **Git**: For cloning the repository.
+  * **AWS Account**: You'll need credentials for AWS services like Textract, Comprehend, and S3.
+
+### Dockerized Setup with Docker Compose
+
+This is the recommended method to run the application locally, as it sets up the database, backend, and frontend in one go.
+
+1.  **Clone the Repository**
+    Open your terminal and clone the project repository:
+
+    ```bash
+    git clone https://github.com/obiwan04kanobi/AI-Resume-Screener-FastAPI.git
+    cd AI-Resume-Screener-FastAPI
     ```
 
-2. Install dependencies:
-   ```bash
-    npm install
+2.  **Configure Environment Variables**
+    The backend service requires credentials to connect to AWS and other services.
+
+      * Navigate to the `FastApi/` directory.
+      * Create a new file named `.env`.
+      * Add the required environment variables to this file. The `DATABASE_URL` is already configured to work within Docker, so you only need to add your AWS and other secrets.
+
+    required `.env` file content:
+
+    ```env
+    # In FastApi/.env
+    # --- DATABASE ---
+    DATABASE_URL="mssql+pyodbc://sa:W^L1*hIGs0sisL9h@resume_screener_db:1433/resume_portal?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
+
+    #----LOCAL FILE UPLOAD LOCATION ------
+    LOCAL_UPLOAD_DIR= "/app/uploads"
+
+    # --- AWS CREDENTIALS ---
+    AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY
+    AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_KEY
+    AWS_REGION=ap-south-1
+    BUCKET_NAME=your-s3-bucket-name
+
+    # --- EMAIL ---
+    SMTP_EMAIL="your_email@example.com"
+    SMTP_PASSWORD="your_email_password" # Use a Google App Password
+    SMTP_SERVER="smtp.gmail.com"
+    SMTP_PORT=587
+
+    # --- JWT FOR REVIEW LINKS ---
+    JWT_SECRET="your_super_secret_jwt_key"
+    FRONTEND_REVIEW_URL="http://localhost:5173/review"
+
+    # --- APPLICATION ---
+    JOB_LISTINGS_URL="http://localhost:5173/jobs-listings" # Your frontend jobs page URL
     ```
 
-3. Initialize and deploy with Amplify:
-   ```bash
-    amplify init
-    amplify push
+3.  **Build and Run the Containers**
+    From the **root directory** of the project (where the `docker-compose.yml` file is located), run the following command:
+
+    ```bash
+    docker-compose up --build
     ```
 
-4. Start the development server:
-   ```bash
-    npm run dev
-    ```
+    This command will:
 
-5. Publish to production:
-    ```
-    amplify publish
-    ```
+      * Build the Docker images for the FastAPI backend and the React frontend.
+      * Start the SQL Server database and run the initialization script.
+      * Start the backend and frontend services.
 
-## Usage
-### Candidate Workflow
+    You can add a `-d` flag (`docker-compose up --build -d`) to run the containers in detached mode (in the background).
 
-1. Navigate to the Job Listings page.
-2. Browse active jobs and click "Apply Now".
-3. Fill out the submission form and upload a resume.
-4. Receive a confirmation email and subsequent daily emails for new, relevant job postings.
+4.  **Access the Application**
+    Once all the containers are up and running, you can access the services in your browser:
 
-### HR Workflow
-1. Navigate to the homepage and select "HR".
-2. Log in using AWS Cognito.
-3. Access the dashboard to view analytics and new candidates.
-4. Use the "Post Job" form to create new openings.
-5. Use the "Manage Jobs" page to toggle the visibility of or delete job listings.
-6. Use the "Candidate Database" to search the entire talent pool.
-7. When viewing a candidate, send a review link to a department head for collaborative feedback.
+      * **Frontend Application**: [http://localhost:5173](https://www.google.com/search?q=http://localhost:5173)
+      * **Backend API Docs**: [http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs)
+
+-----
 
 ## Contributing
+
 Contributions are not being accepted for this project at this time.
 
 ## Contact
 
 For questions or support, please connect with any of us:
 
-- [Deepanshu Sharma](https://www.linkedin.com/in/deepanshu-sharma-2078532ab/)
-- [Raj Srivastava](https://www.linkedin.com/in/raj-srivastava-a680482b4/) ([GitHub](https://github.com/Rajs1235))
-- [Mayank Pant](https://www.linkedin.com/in/mayank04pant/) ([GitHub](https://github.com/obiwan04kanobi))
-
+  - [Deepanshu Sharma](https://www.linkedin.com/in/deepanshu-sharma-2078532ab/)
+  - [Raj Srivastava](https://www.linkedin.com/in/raj-srivastava-a680482b4/) ([GitHub](https://github.com/Rajs1235))
+  - [Mayank Pant](https://www.linkedin.com/in/mayank04pant/) ([GitHub](https://github.com/obiwan04kanobi))

@@ -1,6 +1,42 @@
-version: '3.8'
+version: "3.9"
 
 services:
+  # --- SQL Server Database Service ---
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: resume_screener_db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=W^L1*hIGs0sisL9h
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+
+  # --- MSSQL Init Script Runner ---
+  mssql-init:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: resume_screener_db_init
+    depends_on:
+      - mssql
+    volumes:
+      - ./mssql-init/init.sql:/init.sql:ro
+    entrypoint: >
+      /bin/bash -c "
+      echo '⏳ Waiting for SQL Server to start...' &&
+      until /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P 'W^L1*hIGs0sisL9h' -Q 'SELECT 1' > /dev/null 2>&1;
+      do
+        sleep 2
+      done &&
+      echo '✅ SQL Server is up. Running init script...' &&
+      /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P 'W^L1*hIGs0sisL9h' -d master -i /init.sql &&
+      echo '✅ Database initialized successfully'
+      "
+
   # --- FastAPI Backend Service ---
   backend:
     build: ./FastApi
@@ -12,8 +48,8 @@ services:
     volumes:
       - ./FastApi/app:/app/app
       - ../uploads:/app/uploads
-    # This setting allows the container to connect to your host machine
-    # using the special DNS name 'host.docker.internal'.
+    depends_on:
+      - mssql
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -25,3 +61,6 @@ services:
       - "5173:80"
     depends_on:
       - backend
+
+volumes:
+  mssql_data:

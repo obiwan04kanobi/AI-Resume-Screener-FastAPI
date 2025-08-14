@@ -6,7 +6,7 @@ AI Resume Portal is a comprehensive web application designed to streamline the e
 
 ## Team
 
-  - [Deepanshu Sharma](https://www.linkedin.com/in/deepanshu-sharma-2078532ab/)
+  - [Deepanshu Sharma](https://www.linkedin.com/in/deepanshu-sharma-2078532ab/)([Github](https://github.com/Deepanshu-0052))
   - [Raj Srivastava](https://www.linkedin.com/in/raj-srivastava-a680482b4/) ([GitHub](https://github.com/Rajs1235))
   - [Mayank Pant](https://www.linkedin.com/in/mayank04pant/) ([GitHub](https://github.com/obiwan04kanobi))
 
@@ -199,6 +199,6 @@ Contributions are not being accepted for this project at this time.
 
 For questions or support, please connect with any of us:
 
-  - [Deepanshu Sharma](https://www.linkedin.com/in/deepanshu-sharma-2078532ab/)
+  - [Deepanshu Sharma](https://www.linkedin.com/in/deepanshu-sharma-2078532ab/)([Github](https://github.com/Deepanshu-0052))
   - [Raj Srivastava](https://www.linkedin.com/in/raj-srivastava-a680482b4/) ([GitHub](https://github.com/Rajs1235))
   - [Mayank Pant](https://www.linkedin.com/in/mayank04pant/) ([GitHub](https://github.com/obiwan04kanobi))
